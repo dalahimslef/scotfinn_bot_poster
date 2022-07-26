@@ -1,0 +1,9 @@
+When deploying to App Engine, first make sure you have set the right url for 'api_server_baseurl' in config.js.  Cd to the server directory (cd C:\Users\dalah\Programming\node-programs\news\bot_poster) and run
+'gcloud app deploy'.
+
+To deploy cron jobs run 'gcloud app deploy cron.yaml'
+
+If this is a new app, create an app.yaml file in the root directory with the following content:
+runtime: nodejs14
+service: (select a service name)
+env: standard
