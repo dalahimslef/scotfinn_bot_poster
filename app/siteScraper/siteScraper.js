@@ -220,6 +220,45 @@ exports.testScraper = async (sitename) => {
     }
 }
 
+exports.postProperties = async (messageLogger, error_logger) => {
+    try {
+        const path = __dirname + '/sites';
+        const folderContent = fs.readdirSync(path);
+        let storyInfo = [];
+        for (const elementName of folderContent) {
+            if (elementName.substr(0, 1) != '_') {
+                const elementPath = path + '/' + elementName;
+                if (fs.lstatSync(elementPath).isDirectory()) {
+                    const SiteScraper = require(elementPath + '/SiteScraperClass.js');
+                    const scraper = new SiteScraper(messageLogger, errorLogger);
+                    let storyUrls = await scraper.getProperties();
+                    /*
+                    storyUrls = sanitizeStoryUrls(storyUrls);
+                    const urlArray = [];
+                    storyUrls.forEach(storyUrl => {
+                        urlArray.push(storyUrl.url);
+                    })
+                    
+                    let postedUrls = await getExistingUrls(urlArray);
+                    const postedUrlList = [];
+                    postedUrls.forEach(postedUrl => { postedUrlList.push(postedUrl.url); });
+                    storyUrls = removeAllreadyPostedStories(storyUrls, postedUrlList);
+                    let siteStoryInfo = await scraper.getStoryInfo(storyUrls);
+                    storyInfo = storyInfo.concat(siteStoryInfo);
+                    */
+                }
+            }
+        }
+    }
+    catch (error) {
+        let message = error;
+        if (error.message) {
+            message = error.message;
+        }
+        errorLogger.logError("Some uncaught error in postStories function:" + message);
+    }
+}
+
 exports.postStories = async (messageLogger, error_logger) => {
     errorLogger = error_logger;
     const categoriesInfo = await categoryUtils.getCatergoryPaths();

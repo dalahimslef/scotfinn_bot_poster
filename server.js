@@ -13,7 +13,10 @@ const msBetweenScans = 3600000; // Run every hour
 
 const errorLogger = new ErrorLoggerClass();
 const messageLogger = new MessageLoggerClass();
-let botStatusMessage='';
+let botStatusMessage = '';
+
+function testScraper() {
+}
 
 async function startLoop() {
     botStatusMessage = 'Attempting loop start<br>';
@@ -111,6 +114,11 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // simple route
 app.get("/", async (req, res) => {
+    testScraper();
+});
+
+
+app.get("/status", async (req, res) => {
     const botStatus = await api.getBotStatus();
     let message = "Welcome to Bot inspector.<br>";
     message += botStatusMessage;
@@ -122,18 +130,18 @@ app.get("/", async (req, res) => {
     messages.forEach(msg => { message += msg + '<br>'; })
 
     message += '<br>STATUS:<br>';
-    message += 'botScrapingLoopErrors:'+botStatus.botScrapingLoopErrors+'<br>';
-    message += 'botStartErrors:'+botStatus.botStartErrors+'<br>';
-    message += 'completedloops:'+botStatus.completedloops+'<br>';
-    message += 'scrapingInProgress:'+botStatus.scrapingInProgress+'<br>';
+    message += 'botScrapingLoopErrors:' + botStatus.botScrapingLoopErrors + '<br>';
+    message += 'botStartErrors:' + botStatus.botStartErrors + '<br>';
+    message += 'completedloops:' + botStatus.completedloops + '<br>';
+    message += 'scrapingInProgress:' + botStatus.scrapingInProgress + '<br>';
     const lastLoopEndTimestamp = new Date(botStatus.lastLoopEndTimestamp);
-    message += 'last end:'+lastLoopEndTimestamp.getHours()+':'+lastLoopEndTimestamp.getMinutes()+':'+lastLoopEndTimestamp.getSeconds()+'<br>';
+    message += 'last end:' + lastLoopEndTimestamp.getHours() + ':' + lastLoopEndTimestamp.getMinutes() + ':' + lastLoopEndTimestamp.getSeconds() + '<br>';
     const lastLoopStartTimestamp = new Date(botStatus.lastLoopStartTimestamp);
-    message += 'last start:'+lastLoopStartTimestamp.getHours()+':'+lastLoopStartTimestamp.getMinutes()+':'+lastLoopStartTimestamp.getSeconds()+'<br>';
+    message += 'last start:' + lastLoopStartTimestamp.getHours() + ':' + lastLoopStartTimestamp.getMinutes() + ':' + lastLoopStartTimestamp.getSeconds() + '<br>';
     const nextStartTimestamp = new Date(botStatus.nextStartTimestamp);
-    message += 'next start:'+nextStartTimestamp.getHours()+':'+nextStartTimestamp.getMinutes()+':'+nextStartTimestamp.getSeconds()+'<br>';
+    message += 'next start:' + nextStartTimestamp.getHours() + ':' + nextStartTimestamp.getMinutes() + ':' + nextStartTimestamp.getSeconds() + '<br>';
     const now = new Date(Date.now());
-    message += 'current time:'+now.getHours()+':'+now.getMinutes()+':'+now.getSeconds()+'<br>';
+    message += 'current time:' + now.getHours() + ':' + now.getMinutes() + ':' + now.getSeconds() + '<br>';
     if (botStatus.scrapingInProgress) {
         message += '<br>...scraping in progress...<br>';
     }
