@@ -1,9 +1,35 @@
 const ScraperBaseClass = require('../../ScraperBaseClass.js');
 
 class SiteDirectory {
+    url = undefined;
     dom = undefined;
     parentDir = undefined;
-    childDirs = [];
+    propertyCount = undefined;
+    propertyCountLimit = 1000;
+    childDirectoryUrls = undefined;
+    childPropertyUrls = undefined;
+
+    async initialize() {
+        this.dom = await this.getDom(this.url);
+        this.propertyCount = this.getPropertyCountFromDom();
+        if (this.readSubdirs()) {
+            this.childDirectoryUrls = this.getChildDirectoryUrlsFromDom();
+        }
+        else {
+            this.childPropertyUrls = this.getchildPropertyUrlsFromDom();
+        }
+    }
+
+    readSubdirs() {
+        return (this.propertyCount >= this.propertyCountLimit);
+    }
+
+    async getchildPropertyUrlsFromDom(){
+        let propertyLiksPageDom = await this.getDom(this.url+this.nextPageUrlExtension);
+        while(propertyLiksPageDom){
+
+        }
+    }
 }
 
 class PropertyListPage {
@@ -65,6 +91,10 @@ class SiteScraperClass extends ScraperBaseClass {
         }
         return pageDOM;
     }
+
+    {
+
+}
 }
 
 module.exports = SiteScraperClass
