@@ -12,7 +12,7 @@ class SiteDirectory {
     async initialize() {
         this.dom = await this.getDom(this.url);
         this.propertyCount = this.getPropertyCountFromDom();
-        if (this.readSubdirs()) {
+        if (this.subdirsRequired()) {
             this.childDirectoryUrls = this.getChildDirectoryUrlsFromDom();
         }
         else {
@@ -20,15 +20,23 @@ class SiteDirectory {
         }
     }
 
-    readSubdirs() {
+    subdirsRequired() {
         return (this.propertyCount >= this.propertyCountLimit);
     }
 
     async getchildPropertyUrlsFromDom(){
-        let propertyLiksPageDom = await this.getDom(this.url+this.nextPageUrlExtension);
-        while(propertyLiksPageDom){
-
+        const allPropertyUrls = [];
+        let propertyUrls = this.getPropertyUrlsFromDom(this.dom);
+        propertyUrls.forEach(propertyUrl => {allPropertyUrls.push(propertyUrl)});
+        let propertyPageIndex = 1;
+        let nextPropertyPageDom = await this.getDom(this.url+'/?page='+propertyPageIndex); 
+        while(nextPropertyPageDom){
+            propertyUrls = this.getPropertyUrlsFromDom(nextPropertyPageDom);
+            propertyUrls.forEach(propertyUrl => {allPropertyUrls.push(propertyUrl)});
+            propertyPageIndex += 1;
+            nextPropertyPageDom = await this.getDom(this.url+'/?page='+propertyPageIndex);
         }
+        return allPropertyUrls;
     }
 }
 
