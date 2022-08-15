@@ -65,17 +65,9 @@ class SiteDirectory {
     }
 }
 
-class PropertyListPage {
-
-}
-
 class SiteScraperClass extends ScraperBaseClass {
     siteBaseUrl = 'https://www.onthemarket.com/';
     initialPage = 'for-sale/property/uk/';
-    currentPropertyListPage = undefined;
-    currentPropertyPage = undefined;
-    allPropertyListPagesRead = false;
-    allPropertyPagesRead = false;
     siteDirectory = undefined;
 
     constructor(messageLogger, errorLogger) {

@@ -16,6 +16,8 @@ const messageLogger = new MessageLoggerClass();
 let botStatusMessage = '';
 
 function testScraper() {
+    let propertyUrls = await scraper.testScraper('onthemarket.com', messageLogger, errorLogger);
+    return propertyUrls;
 }
 
 async function startLoop() {
@@ -114,7 +116,14 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // simple route
 app.get("/", async (req, res) => {
-    testScraper();
+    let message="/test => test scarper</br>/start_loop => start scraper loop</br>/status => get scarper status</br>"
+    res.send(message);
+});
+
+app.get("/test", async (req, res) => {
+    let propertyUrls = await testScraper();
+
+    res.send(propertyUrls);
 });
 
 
