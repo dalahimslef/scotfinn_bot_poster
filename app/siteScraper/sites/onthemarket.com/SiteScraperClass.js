@@ -26,6 +26,24 @@ class SiteDirectory {
         }
     }
 
+    async getDom(url) {
+        let response = '';
+        let dom;
+        try {
+            response = await got(url);
+            if (this.runScripts) {
+                dom = new JSDOM(response.body, { runScripts: "dangerously" });
+            }
+            else {
+                dom = new JSDOM(response.body);
+            }
+        } catch (error) {
+            //console.log(error.response.body);
+            this.logError("Error loading from " + url + ":" + error.response.body);
+        }
+        return dom;
+    }
+
     subdirsRequired() {
         return (this.propertyCount >= this.propertyCountLimit);
     }
@@ -47,12 +65,12 @@ class SiteDirectory {
 
     async getChildDirectoriesFromDom() {
         const childDirUrls = this.getChildDirUrlsFromDom(this.dom);
-        childDirUrls.forEach(childDirUrl => {
+        for (const childDirUrl of childDirUrls) {
             const childDir = new SiteDirectory(childDirUrl);
             await childDir.initialize();
             childDir.parentDir = this;
             childDirectories.push(childDir);
-        })
+        }
     }
 
     getAllChildPropertyUrls() {
@@ -77,6 +95,7 @@ class SiteScraperClass extends ScraperBaseClass {
 
     async initialize() {
         this.siteDirectory = new SiteDirectory(this.siteBaseUrl + this.initialPage, this.messageLogger, this.errorLogger);
+        await this.siteDirectory.initialize();
     }
 
     getPropertyUrls() {

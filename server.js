@@ -15,7 +15,7 @@ const errorLogger = new ErrorLoggerClass();
 const messageLogger = new MessageLoggerClass();
 let botStatusMessage = '';
 
-function testScraper() {
+async function testScraper() {
     let propertyUrls = await scraper.testScraper('onthemarket.com', messageLogger, errorLogger);
     return propertyUrls;
 }

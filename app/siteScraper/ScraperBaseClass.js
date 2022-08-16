@@ -14,6 +14,10 @@ class ScraperBaseClass {
     this.messageLogger = messageLogger;
   }
 
+  async initialize() {
+    
+  }
+
   logError(message) {
     this.errorLogger.logError(message);
   }
@@ -45,8 +49,8 @@ class ScraperBaseClass {
 
 
   getPropertyUrls() {
-        return [];
-    }
+    return [];
+  }
 }
 
 
