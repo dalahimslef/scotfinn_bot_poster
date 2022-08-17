@@ -15,6 +15,7 @@ exports.testScraper = async (sitename, messageLogger, errorLogger) => {
         const elementPath = __dirname + '/sites/' + sitename;
         const SiteScraper = require(elementPath + '/SiteScraperClass.js');
         const scraper = new SiteScraper(messageLogger, errorLogger);
+        console.log('scraper.initialize')
         await scraper.initialize();
         propertyUrls = await scraper.getPropertyUrls();
     }
