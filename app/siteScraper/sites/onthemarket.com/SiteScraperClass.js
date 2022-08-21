@@ -23,7 +23,7 @@ class SiteDirectory {
         //console.log(anchors[0].textContent);
         const anchors = this.dom.window.document.querySelector(spanSelector);
         console.log(anchors.textContent);
-        
+
         return 10;
     }
 
@@ -80,6 +80,12 @@ class SiteDirectory {
             nextPropertyPageDom = await getDomFromUrl(this.url + '/?page=' + propertyPageIndex);
         }
         return allPropertyUrls;
+    }
+
+    getPropertyUrlsFromDom(dom) {
+        const anchorSelector = 'li.otm-PropertyCard div div div a';
+        const anchors = Array.from(dom.window.document.querySelectorAll(anchorSelector));
+        console.log(anchors)
     }
 
     async getChildDirectoriesFromDom() {
