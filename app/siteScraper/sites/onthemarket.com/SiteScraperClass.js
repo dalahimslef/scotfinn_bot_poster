@@ -68,14 +68,19 @@ class SiteDirectory {
     }
 
     async getDirectChildPropertyUrlsFromDom() {
-        const allPropertyUrls = [];
+        const allPropertyUrls = {};
         let propertyUrls = this.getPropertyUrlsFromDom(this.dom);
+        Object.keys(propertyUrsl).forEach(key => {
+            allPropertyUrls[key] = propertyUrsl[key];
+        });
         propertyUrls.forEach(propertyUrl => { allPropertyUrls.push(propertyUrl) });
         let propertyPageIndex = 1;
         let nextPropertyPageDom = await getDomFromUrl(this.url + '/?page=' + propertyPageIndex);
         while (nextPropertyPageDom) {
             propertyUrls = this.getPropertyUrlsFromDom(nextPropertyPageDom);
-            propertyUrls.forEach(propertyUrl => { allPropertyUrls.push(propertyUrl) });
+            Object.keys(propertyUrsl).forEach(key => {
+                allPropertyUrls[key] = propertyUrsl[key];
+            });
             propertyPageIndex += 1;
             nextPropertyPageDom = await getDomFromUrl(this.url + '/?page=' + propertyPageIndex);
         }
@@ -83,9 +88,19 @@ class SiteDirectory {
     }
 
     getPropertyUrlsFromDom(dom) {
-        const anchorSelector = 'li.otm-PropertyCard div div div a';
+        const propertyUrsl = {};
+        const anchorSelector = 'li.otm-PropertyCard a';
         const anchors = Array.from(dom.window.document.querySelectorAll(anchorSelector));
-        console.log(anchors)
+
+        anchors.forEach(anchor => {
+            const href = anchor.attributes.href.textContent.replace(/^\/|\/$/g, '');//trim any first or last slashes
+            console.log(href);
+            if (href.substring(0, 8) == 'details/') {
+                propertyUrsl[href] = href;
+            }
+        });
+
+        return propertyUrsl;
     }
 
     async getChildDirectoriesFromDom() {
