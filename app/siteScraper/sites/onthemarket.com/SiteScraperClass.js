@@ -70,19 +70,26 @@ class SiteDirectory {
     async getDirectChildPropertyUrlsFromDom() {
         const allPropertyUrls = {};
         let propertyUrls = this.getPropertyUrlsFromDom(this.dom);
-        Object.keys(propertyUrsl).forEach(key => {
-            allPropertyUrls[key] = propertyUrsl[key];
+        let morePropertiesAdded = false;
+        Object.keys(propertyUrls).forEach(key => {
+            if (!allPropertyUrls[key]) {
+                allPropertyUrls[key] = propertyUrls[key];
+                morePropertiesAdded = true;
+            }
         });
-        propertyUrls.forEach(propertyUrl => { allPropertyUrls.push(propertyUrl) });
-        let propertyPageIndex = 1;
-        let nextPropertyPageDom = await getDomFromUrl(this.url + '/?page=' + propertyPageIndex);
-        while (nextPropertyPageDom) {
+        //propertyUrls.forEach(propertyUrl => { allPropertyUrls.push(propertyUrl) });
+        let propertyPageIndex = 1; 
+        while (morePropertiesAdded) {
+            let nextPropertyPageDom = await domUtils.getDomFromUrl(this.url + '/?page=' + propertyPageIndex);
             propertyUrls = this.getPropertyUrlsFromDom(nextPropertyPageDom);
-            Object.keys(propertyUrsl).forEach(key => {
-                allPropertyUrls[key] = propertyUrsl[key];
+            morePropertiesAdded = false;
+            Object.keys(propertyUrls).forEach(key => {
+                if (!allPropertyUrls[key]) {
+                    allPropertyUrls[key] = propertyUrls[key];
+                    morePropertiesAdded = true;
+                }
             });
             propertyPageIndex += 1;
-            nextPropertyPageDom = await getDomFromUrl(this.url + '/?page=' + propertyPageIndex);
         }
         return allPropertyUrls;
     }
