@@ -3,6 +3,8 @@ const ScraperBaseClass = require('../../ScraperBaseClass.js');
 const domUtils = require('../../../utils/domUtils.js');
 
 class SiteDirectory {
+    siteBaseUrl = undefined;
+    path = undefined;
     url = undefined;
     dom = undefined;
     parentDir = undefined;
@@ -10,11 +12,15 @@ class SiteDirectory {
     propertyCountLimit = 1000;
     childDirectories = [];
     childPropertyUrls = [];
+    childDirUrls = undefined;
+    messageLogger = undefined;
 
-    constructor(url, messageLogger, errorLogger) {
+    constructor(siteBaseUrl, path, messageLogger, errorLogger) {
         this.errorLogger = errorLogger;
         this.messageLogger = messageLogger;
-        this.url = url;
+        this.siteBaseUrl = siteBaseUrl;
+        this.path = path;
+        this.url = siteBaseUrl + path;
     }
 
     getPropertyCountFromDom() {
@@ -24,7 +30,7 @@ class SiteDirectory {
         const anchors = this.dom.window.document.querySelector(spanSelector);
         console.log(anchors.textContent);
 
-        return 10;
+        return 10000;
     }
 
     async initialize() {
@@ -95,7 +101,7 @@ class SiteDirectory {
     }
 
     getPropertyUrlsFromDom(dom) {
-        const propertyUrsl = {};
+        const propertyUrls = {};
         const anchorSelector = 'li.otm-PropertyCard a';
         const anchors = Array.from(dom.window.document.querySelectorAll(anchorSelector));
 
@@ -103,17 +109,31 @@ class SiteDirectory {
             const href = anchor.attributes.href.textContent.replace(/^\/|\/$/g, '');//trim any first or last slashes
             console.log(href);
             if (href.substring(0, 8) == 'details/') {
-                propertyUrsl[href] = href;
+                propertyUrls[href] = href;
             }
         });
 
-        return propertyUrsl;
+        return propertyUrls;
+    }
+
+    getChildDirUrlsFromDom(dom){
+        const childDirUrls = {};
+        const anchorSelector = 'div.within li.otm-ListItemOtmBullet a';
+        const anchors = Array.from(dom.window.document.querySelectorAll(anchorSelector));
+
+        anchors.forEach(anchor => {
+            const href = anchor.attributes.href.textContent.replace(/^\/|\/$/g, '');//trim any first or last slashes
+            console.log(href);
+            childDirUrls[href] = href;
+        });
+
+        return childDirUrls;
     }
 
     async getChildDirectoriesFromDom() {
         const childDirUrls = this.getChildDirUrlsFromDom(this.dom);
-        for (const childDirUrl of childDirUrls) {
-            const childDir = new SiteDirectory(childDirUrl);
+        for (const childDirUrl of Object.keys(childDirUrls)) {
+            const childDir = new SiteDirectory(this.siteBaseUrl, childDirUrl, this.messageLogger, this.errorLogger);
             await childDir.initialize();
             childDir.parentDir = this;
             childDirectories.push(childDir);
@@ -142,7 +162,7 @@ class SiteScraperClass extends ScraperBaseClass {
 
     async initialize() {
         console.log('SiteScraperClass.initialize')
-        this.siteDirectory = new SiteDirectory(this.siteBaseUrl + this.initialPage, this.messageLogger, this.errorLogger);
+        this.siteDirectory = new SiteDirectory(this.siteBaseUrl, this.initialPage, this.messageLogger, this.errorLogger);
         await this.siteDirectory.initialize();
         console.log('SiteScraperClass.initialize done')
     }
