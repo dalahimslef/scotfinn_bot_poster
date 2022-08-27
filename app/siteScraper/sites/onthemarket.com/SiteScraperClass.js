@@ -28,25 +28,25 @@ class SiteDirectory {
         //const anchors = Array.from(this.dom.window.document.querySelectorAll(spanSelector));
         //console.log(anchors[0].textContent);
         const anchors = this.dom.window.document.querySelector(spanSelector);
-        console.log(anchors.textContent);
+        //console.log(anchors.textContent);
 
         return 10000;
     }
 
     async initialize() {
-        console.log('SiteDirectory.initialize')
+        console.log('SiteDirectory.initialize:'+this.path)
         this.dom = await domUtils.getDomFromUrl(this.url);
         if (this.dom) {
             this.messageLogger.logMessage('DOM loaded: ' + this.url);
             this.propertyCount = this.getPropertyCountFromDom();
             if (this.subdirsRequired()) {
-                this.childDirectories = this.getChildDirectoriesFromDom();
+                this.childDirectories = await this.getChildDirectoriesFromDom();
             }
             else {
                 this.childPropertyUrls = this.getDirectChildPropertyUrlsFromDom();
             }
         }
-        console.log('SiteDirectory.initialize done')
+        console.log('SiteDirectory.initialize done:'+this.path)
     }
 
     /*
@@ -107,7 +107,7 @@ class SiteDirectory {
 
         anchors.forEach(anchor => {
             const href = anchor.attributes.href.textContent.replace(/^\/|\/$/g, '');//trim any first or last slashes
-            console.log(href);
+            //console.log(href);
             if (href.substring(0, 8) == 'details/') {
                 propertyUrls[href] = href;
             }
@@ -123,7 +123,7 @@ class SiteDirectory {
 
         anchors.forEach(anchor => {
             const href = anchor.attributes.href.textContent.replace(/^\/|\/$/g, '');//trim any first or last slashes
-            console.log(href);
+            //console.log(href);
             childDirUrls[href] = href;
         });
 
@@ -161,10 +161,10 @@ class SiteScraperClass extends ScraperBaseClass {
     }
 
     async initialize() {
-        console.log('SiteScraperClass.initialize')
+        console.log('SiteScraperClass.initialize:'+this.initialPage)
         this.siteDirectory = new SiteDirectory(this.siteBaseUrl, this.initialPage, this.messageLogger, this.errorLogger);
         await this.siteDirectory.initialize();
-        console.log('SiteScraperClass.initialize done')
+        console.log('SiteScraperClass.initialize done:'+this.initialPage)
     }
 
     getPropertyUrls() {
