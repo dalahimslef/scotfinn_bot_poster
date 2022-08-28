@@ -9,68 +9,63 @@ class SiteDirectory {
     dom = undefined;
     parentDir = undefined;
     propertyCount = undefined;
+    subdirsRequired = undefined;
     propertyCountLimit = 1000;
     childDirectories = [];
     childPropertyUrls = [];
     childDirUrls = undefined;
     messageLogger = undefined;
+    depth = undefined;
 
-    constructor(siteBaseUrl, path, messageLogger, errorLogger) {
+    constructor(siteBaseUrl, path, messageLogger, errorLogger, depth) {
         this.errorLogger = errorLogger;
         this.messageLogger = messageLogger;
         this.siteBaseUrl = siteBaseUrl;
         this.path = path;
         this.url = siteBaseUrl + path;
+        this.depth = depth;
     }
 
     getPropertyCountFromDom() {
         const spanSelector = 'span.otm-ResultCount span';
-        //const anchors = Array.from(this.dom.window.document.querySelectorAll(spanSelector));
-        //console.log(anchors[0].textContent);
-        const anchors = this.dom.window.document.querySelector(spanSelector);
-        //console.log(anchors.textContent);
+        const counterTextElement = this.dom.window.document.querySelector(spanSelector);
+        const counter = parseInt(counterTextElement.textContent.replace(/\D/g, ''));
+        const plusPos = counterTextElement.textContent.indexOf("+")
+        let tooMany = true;
+        if (plusPos < 0) {
+            tooMany = false;
+        }
 
-        return 10000;
+        return { counter, tooMany };
     }
 
     async initialize() {
-        console.log('SiteDirectory.initialize:'+this.path)
+        this.printDebugText('SiteDirectory.initialize:' + this.path)
         this.dom = await domUtils.getDomFromUrl(this.url);
         if (this.dom) {
             this.messageLogger.logMessage('DOM loaded: ' + this.url);
-            this.propertyCount = this.getPropertyCountFromDom();
-            if (this.subdirsRequired()) {
+            let countFromDom = this.getPropertyCountFromDom();
+            this.propertyCount = countFromDom.counter;
+            this.subdirsRequired = countFromDom.tooMany;
+            // if (this.subdirsRequired && this.depth < 1) {
+            if (this.subdirsRequired) {
                 this.childDirectories = await this.getChildDirectoriesFromDom();
             }
             else {
-                this.childPropertyUrls = this.getDirectChildPropertyUrlsFromDom();
+                this.childPropertyUrls = await this.getDirectChildPropertyUrlsFromDom();
+                this.printDebugText('properties:' + this.propertyCount);
             }
         }
-        console.log('SiteDirectory.initialize done:'+this.path)
+        this.printDebugText('SiteDirectory.initialize done:' + this.path)
     }
 
-    /*
-    async getDom(url) {
-        let response = '';
-        let dom;
-        try {
-            response = await got(url);
-            if (this.runScripts) {
-                dom = new JSDOM(response.body, { runScripts: "dangerously" });
-            }
-            else {
-                dom = new JSDOM(response.body);
-            }
-        } catch (error) {
-            //console.log(error.response.body);
-            this.logError("Error loading from " + url + ":" + error.response.body);
+    printDebugText(debugText) {
+        let text = '';
+        for (let i = 0; i < this.depth; i += 1) {
+            text = text + '    ';
         }
-        return dom;
-    }
-    */
-
-    subdirsRequired() {
-        return (this.propertyCount >= this.propertyCountLimit);
+        text = text + debugText;
+        console.log(text);
     }
 
     async getDirectChildPropertyUrlsFromDom() {
@@ -84,7 +79,8 @@ class SiteDirectory {
             }
         });
         //propertyUrls.forEach(propertyUrl => { allPropertyUrls.push(propertyUrl) });
-        let propertyPageIndex = 1; 
+        let propertyPageIndex = 1;
+        //while (morePropertiesAdded && propertyPageIndex < 2) {
         while (morePropertiesAdded) {
             let nextPropertyPageDom = await domUtils.getDomFromUrl(this.url + '/?page=' + propertyPageIndex);
             propertyUrls = this.getPropertyUrlsFromDom(nextPropertyPageDom);
@@ -107,7 +103,6 @@ class SiteDirectory {
 
         anchors.forEach(anchor => {
             const href = anchor.attributes.href.textContent.replace(/^\/|\/$/g, '');//trim any first or last slashes
-            //console.log(href);
             if (href.substring(0, 8) == 'details/') {
                 propertyUrls[href] = href;
             }
@@ -116,14 +111,13 @@ class SiteDirectory {
         return propertyUrls;
     }
 
-    getChildDirUrlsFromDom(dom){
+    getChildDirUrlsFromDom(dom) {
         const childDirUrls = {};
         const anchorSelector = 'div.within li.otm-ListItemOtmBullet a';
         const anchors = Array.from(dom.window.document.querySelectorAll(anchorSelector));
 
         anchors.forEach(anchor => {
             const href = anchor.attributes.href.textContent.replace(/^\/|\/$/g, '');//trim any first or last slashes
-            //console.log(href);
             childDirUrls[href] = href;
         });
 
@@ -131,21 +125,25 @@ class SiteDirectory {
     }
 
     async getChildDirectoriesFromDom() {
+        const childDirs = [];
         const childDirUrls = this.getChildDirUrlsFromDom(this.dom);
         for (const childDirUrl of Object.keys(childDirUrls)) {
-            const childDir = new SiteDirectory(this.siteBaseUrl, childDirUrl, this.messageLogger, this.errorLogger);
+            const childDir = new SiteDirectory(this.siteBaseUrl, childDirUrl, this.messageLogger, this.errorLogger, this.depth + 1);
             await childDir.initialize();
             childDir.parentDir = this;
-            childDirectories.push(childDir);
+            childDirs.push(childDir);
         }
+        return childDirs;
     }
 
     getAllChildPropertyUrls() {
-        const allChildPropertyUrls = [];
-        this.childDirectories.forEach(childDirectory => {
-            allChildPropertyUrls.concat(childDirectory.getAllChildPropertyUrls());
+        let allChildPropertyUrls = [];
+        Object.keys(this.childPropertyUrls).forEach(key => {
+            allChildPropertyUrls.push(this.childPropertyUrls[key]);
         })
-        allChildPropertyUrls.concat(this.childPropertyUrls);
+        this.childDirectories.forEach(childDirectory => {
+            allChildPropertyUrls = allChildPropertyUrls.concat(childDirectory.getAllChildPropertyUrls());
+        })
         return allChildPropertyUrls;
     }
 }
@@ -161,10 +159,10 @@ class SiteScraperClass extends ScraperBaseClass {
     }
 
     async initialize() {
-        console.log('SiteScraperClass.initialize:'+this.initialPage)
-        this.siteDirectory = new SiteDirectory(this.siteBaseUrl, this.initialPage, this.messageLogger, this.errorLogger);
+        console.log('SiteScraperClass.initialize:' + this.initialPage)
+        this.siteDirectory = new SiteDirectory(this.siteBaseUrl, this.initialPage, this.messageLogger, this.errorLogger, 0);
         await this.siteDirectory.initialize();
-        console.log('SiteScraperClass.initialize done:'+this.initialPage)
+        console.log('SiteScraperClass.initialize done:' + this.initialPage)
     }
 
     getPropertyUrls() {

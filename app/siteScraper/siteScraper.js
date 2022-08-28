@@ -18,6 +18,7 @@ exports.testScraper = async (sitename, messageLogger, errorLogger) => {
         console.log('scraper.initialize')
         await scraper.initialize();
         propertyUrls = await scraper.getPropertyUrls();
+        console.log(propertyUrls)
     }
     catch (error) {
         console.log(error);
