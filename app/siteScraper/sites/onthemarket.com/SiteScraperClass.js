@@ -47,6 +47,7 @@ class SiteDirectory {
             let countFromDom = this.getPropertyCountFromDom();
             this.propertyCount = countFromDom.counter;
             this.subdirsRequired = countFromDom.tooMany;
+            //FOR DEBUGGING
             // if (this.subdirsRequired && this.depth < 1) {
             if (this.subdirsRequired) {
                 this.childDirectories = await this.getChildDirectoriesFromDom();
@@ -80,6 +81,8 @@ class SiteDirectory {
         });
         //propertyUrls.forEach(propertyUrl => { allPropertyUrls.push(propertyUrl) });
         let propertyPageIndex = 1;
+
+        //FOR DEBUGGING
         //while (morePropertiesAdded && propertyPageIndex < 2) {
         while (morePropertiesAdded) {
             let nextPropertyPageDom = await domUtils.getDomFromUrl(this.url + '/?page=' + propertyPageIndex);
@@ -167,6 +170,38 @@ class SiteScraperClass extends ScraperBaseClass {
 
     getPropertyUrls() {
         return this.siteDirectory.getAllChildPropertyUrls();
+    }
+
+    getPropertyTypeFromDom(propertyDom) {
+        return 'detached house'; // Detached house, Semi-detached house, Terraced house, Bungalow, Flats / apartments, Farms / land, Park homes
+    }
+
+    getSaleTypeFromDom(propertyDom) {
+        return 'sale'; // sale, lease, etc...
+    }
+
+    getPriceFromDom(propertyDom) {
+        return 0;
+    }
+
+    getHouseSqmFromDom(propertyDom) {
+        return 0;
+    }
+
+    getLandSqmFromDom(propertyDom) {
+        return 0;
+    }
+
+    getBedroomCountFromDom(propertyDom) {
+        return 0;
+    }
+
+    getConstructionYearFromDom(propertyDom) {
+        return 1900;
+    }
+
+    getImageUrlsFromDom(propertyDom) {
+        return [];
     }
 }
 

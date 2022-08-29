@@ -15,7 +15,7 @@ class ScraperBaseClass {
   }
 
   async initialize() {
-    
+
   }
 
   logError(message) {
@@ -50,6 +50,53 @@ class ScraperBaseClass {
 
   getPropertyUrls() {
     return [];
+  }
+
+  getPropertyTypeFromDom(propertyDom) {
+    return 'detached house'; // Detached house, Semi-detached house, Terraced house, Bungalow, Flats / apartments, Farms / land, Park homes
+  }
+
+  getSaleTypeFromDom(propertyDom) {
+    return 'sale'; // sale, lease, etc...
+  }
+
+  getPriceFromDom(propertyDom) {
+    return 0;
+  }
+
+  getHouseSqmFromDom(propertyDom) {
+    return 0;
+  }
+
+  getLandSqmFromDom(propertyDom) {
+    return 0;
+  }
+
+  getBedroomCountFromDom(propertyDom) {
+    return 0;
+  }
+
+  getConstructionYearFromDom(propertyDom) {
+    return 1900;
+  }
+
+  getImageUrlsFromDom(propertyDom) {
+    return [];
+  }
+
+  async getPropertyInfo(propertyUrl) {
+    const propertyDom = await domUtils.getDomFromUrl(propertyUrl);
+    return {
+      property_type: this.getPropertyTypeFromDom(propertyDom),
+      sale_type: this.getSaleTypeFromDom(propertyDom),
+      //ownership_type: 'ownership', //ownership, shared ownership
+      price: this.getPriceFromDom(propertyDom),
+      house_sqm: this.getHouseSqmFromDom(propertyDom),
+      land_sqm: this.getLandSqmFromDom(propertyDom),
+      bedroom_count: this.getBedroomCountFromDom(propertyDom),
+      construction_year: this.getConstructionYearFromDom(propertyDom),
+      image_urls: this.getImageUrlsFromDom(propertyDom),
+    }
   }
 }
 
