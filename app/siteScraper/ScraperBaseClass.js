@@ -84,19 +84,49 @@ class ScraperBaseClass {
     return [];
   }
 
-  async getPropertyInfo(propertyUrl) {
+  getFormattedAddressFromDom(propertyDom) {
+
+  }
+  getGetGoogleCoordinatesFromDom(propertyDom) {
+
+  }
+
+  async getPropertyInfoFromUrl(propertyUrl) {
     const propertyDom = await domUtils.getDomFromUrl(propertyUrl);
-    return {
-      property_type: this.getPropertyTypeFromDom(propertyDom),
-      sale_type: this.getSaleTypeFromDom(propertyDom),
-      //ownership_type: 'ownership', //ownership, shared ownership
-      price: this.getPriceFromDom(propertyDom),
-      house_sqm: this.getHouseSqmFromDom(propertyDom),
-      land_sqm: this.getLandSqmFromDom(propertyDom),
-      bedroom_count: this.getBedroomCountFromDom(propertyDom),
-      construction_year: this.getConstructionYearFromDom(propertyDom),
-      image_urls: this.getImageUrlsFromDom(propertyDom),
+    if (propertyDom) {
+      return {
+        property_type: this.getPropertyTypeFromDom(propertyDom),
+        sale_type: this.getSaleTypeFromDom(propertyDom),
+        //ownership_type: 'ownership', //ownership, shared ownership
+        price: this.getPriceFromDom(propertyDom),
+        house_sqm: this.getHouseSqmFromDom(propertyDom),
+        land_sqm: this.getLandSqmFromDom(propertyDom),
+        bedroom_count: this.getBedroomCountFromDom(propertyDom),
+        construction_year: this.getConstructionYearFromDom(propertyDom),
+        image_urls: this.getImageUrlsFromDom(propertyDom),
+        formatted_address: this.getFormattedAddressFromDom(propertyDom),
+        google_coordinates: this.getGetGoogleCoordinatesFromDom(propertyDom),
+      }
     }
+    else {
+      return false;
+    }
+  }
+
+  async getPropertyInfo() {
+    const propertyInfo = [];
+    const invalidUrls = [];
+    const propertyUrls = await this.getPropertyUrls();
+    for (let propertyUrl of propertyUrls) {
+      const info = this.getPropertyInfoFromUrl(propertyUrl);
+      if (info) {
+        propertyInfo.push(info);
+      }
+      else {
+        invalidUrls.push(propertyUrl);
+      }
+    }
+    return { propertyInfo, invalidUrls };
   }
 }
 
