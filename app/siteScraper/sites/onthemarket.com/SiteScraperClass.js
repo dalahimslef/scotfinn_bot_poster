@@ -169,7 +169,18 @@ class SiteScraperClass extends ScraperBaseClass {
     }
 
     getPropertyUrls() {
-        return this.siteDirectory.getAllChildPropertyUrls();
+        //The actual return:
+        //return this.siteDirectory.getAllChildPropertyUrls();
+
+        //FOR DEBUGGING
+        return [
+            'https://www.onthemarket.com/details/12293040/',
+            'https://www.onthemarket.com/details/12293030/',
+            'https://www.onthemarket.com/details/12293015/',
+            'https://www.onthemarket.com/details/12292989/',
+            'https://www.onthemarket.com/details/12292948/',
+            'https://www.onthemarket.com/details/12292948aaaaa/', //invalid url
+        ];
     }
 
     getPropertyTypeFromDom(propertyDom) {
