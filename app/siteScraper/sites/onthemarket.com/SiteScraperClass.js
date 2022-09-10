@@ -262,10 +262,34 @@ class SiteScraperClass extends ScraperBaseClass {
         return -1;
     }
 
+    getGetGoogleCoordinatesFromDom(propertyDom) {
+        let latitude = -1000;
+        let longitude = -1000;
+        const staticLocationImage = propertyDom.window.document.querySelector('section#property-map img.static-map');
+        if (staticLocationImage) {
+            const imageSrcString = staticLocationImage.attributes.src.textContent;
+            //See https://developers.google.com/maps/documentation/maps-static/start#Markers
+            //get Marker parameter from the src-url
+            const urlParams = new URLSearchParams(imageSrcString);
+            const markers = urlParams.get('Markers');
+            if (markers) {
+                const markersInfo = markers.split('|');
+                if (markersInfo[1]) {
+                    const coordinates = markersInfo[1].trim().split(',');
+                    if (coordinates[0] && coordinates[1]) {
+                        latitude = parseFloat(coordinates[0].trim());
+                        longitude = parseFloat(coordinates[1].trim());
+                    }
+                }
+            }
+        }
+        return { latitude, longitude };
+    }
+
     getImageUrlsFromDom(propertyDom) {
         const imageUrls = [];
         const images = Array.from(propertyDom.window.document.querySelectorAll('div.tabs-container.photos div.tab-content li.slide picture img'));
-        images.forEach(image=>{
+        images.forEach(image => {
             imageUrls.push(image.attributes.src.textContent);
         });
         return imageUrls;
