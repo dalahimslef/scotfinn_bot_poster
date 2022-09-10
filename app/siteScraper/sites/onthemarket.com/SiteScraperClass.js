@@ -183,36 +183,92 @@ class SiteScraperClass extends ScraperBaseClass {
         ];
     }
 
+    getFeaturesDivText(searchText) {
+        const infoDivs = Array.from(propertyDom.window.document.querySelectorAll('section.otm-IconFeatures div div'));
+        infoDivs.forEach(infoDiv => {
+            const textPosition = infoDiv.textContent.toLowerCase().search(searchText.toLowerCase());
+            if (textPosition !== -1) {
+                return infoDiv.textContent.trim();
+            }
+        });
+        return '';
+    }
+
     getPropertyTypeFromDom(propertyDom) {
-        return 'detached house'; // Detached house, Semi-detached house, Terraced house, Bungalow, Flats / apartments, Farms / land, Park homes
+        if (this.getFeaturesDivText('house') !== '') {
+            return 'house';
+        }
+        if (this.getFeaturesDivText('bungalow') !== '') {
+            return 'house';
+        }
+        if (this.getFeaturesDivText('park home') !== '') {
+            return 'house';
+        }
+        if (this.getFeaturesDivText('flat') !== '') {
+            return 'flat';
+        }
+        if (this.getFeaturesDivText('apartment') !== '') {
+            return 'flat';
+        }
+        if (this.getFeaturesDivText('farm') !== '') {
+            return 'farm';
+        }
+        if (this.getFeaturesDivText('land') !== '') {
+            return 'land';
+        }
+        return '';
     }
 
     getSaleTypeFromDom(propertyDom) {
-        return 'sale'; // sale, lease, etc...
+        return ''; // sale, lease
     }
 
     getPriceFromDom(propertyDom) {
-        return 0;
+        const div = propertyDom.window.document.querySelector('div.otm-Price');
+        if (div) {
+            const priceString = div.textContent;
+            const price = parseFloat(priceString.replace(/\D/g, ''));
+            return price;
+        }
+        return -1;
     }
 
     getHouseSqmFromDom(propertyDom) {
-        return 0;
+        const divText = this.getFeaturesDivText('sq m');
+        const parts = divText.split('/');
+        if (parts[1]) {
+            const words = parts[1].trim().split(' ');
+            if (words[0]) {
+                return parseInt(words[0]);
+            }
+        }
+        return -1;
     }
 
     getLandSqmFromDom(propertyDom) {
-        return 0;
+        return -1;
     }
 
     getBedroomCountFromDom(propertyDom) {
-        return 0;
+        const divText = this.getFeaturesDivText('beds');
+        const words = divText.split(' ');
+        if (words[0]) {
+            return parseInt(words[0]);
+        }
+        return -1;
     }
 
     getConstructionYearFromDom(propertyDom) {
-        return 1900;
+        return -1;
     }
 
     getImageUrlsFromDom(propertyDom) {
-        return [];
+        const imageUrls = [];
+        const pictures = Array.from(propertyDom.window.document.querySelectorAll('div.tabs-container.photos div.tab-content li.slide picture img'));
+        pictures.forEach(picture=>{
+            imageUrls.push();
+        });
+        return imageUrls;
     }
 }
 
