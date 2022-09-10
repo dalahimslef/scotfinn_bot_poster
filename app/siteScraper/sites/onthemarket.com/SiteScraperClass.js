@@ -264,9 +264,9 @@ class SiteScraperClass extends ScraperBaseClass {
 
     getImageUrlsFromDom(propertyDom) {
         const imageUrls = [];
-        const pictures = Array.from(propertyDom.window.document.querySelectorAll('div.tabs-container.photos div.tab-content li.slide picture img'));
-        pictures.forEach(picture=>{
-            imageUrls.push();
+        const images = Array.from(propertyDom.window.document.querySelectorAll('div.tabs-container.photos div.tab-content li.slide picture img'));
+        images.forEach(image=>{
+            imageUrls.push(image.attributes.src.textContent);
         });
         return imageUrls;
     }
