@@ -93,9 +93,14 @@ class ScraperBaseClass {
     return { latitude: -1000, longitude: -1000 };
   }
 
+  initializePropertyDom(propertyDom){
+    
+  }
+
   async getPropertyInfoFromUrl(propertyUrl) {
     const propertyDom = await domUtils.getDomFromUrl(propertyUrl);
     if (propertyDom) {
+      this.initializePropertyDom(propertyDom);
       const returnObject = {
         property_type: this.getPropertyTypeFromDom(propertyDom),
         sale_type: this.getSaleTypeFromDom(propertyDom),

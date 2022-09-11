@@ -1,6 +1,7 @@
 const ScraperBaseClass = require('../../ScraperBaseClass.js');
 //import {getDomFromUrl} from '../../../utils/domUtils.js'
 const domUtils = require('../../../utils/domUtils.js');
+const vm = require('vm');
 
 class SiteDirectory {
     siteBaseUrl = undefined;
@@ -25,6 +26,9 @@ class SiteDirectory {
         this.url = siteBaseUrl + path;
         this.depth = depth;
     }
+
+
+
 
     getPropertyCountFromDom() {
         const spanSelector = 'span.otm-ResultCount span';
@@ -156,6 +160,8 @@ class SiteScraperClass extends ScraperBaseClass {
     initialPage = 'for-sale/property/uk/';
     siteDirectory = undefined;
 
+    otmContext = undefined;
+
     constructor(messageLogger, errorLogger) {
         super(messageLogger, errorLogger);
         this.siteBaseUrl = "https://www.onthemarket.com/"
@@ -166,6 +172,30 @@ class SiteScraperClass extends ScraperBaseClass {
         this.siteDirectory = new SiteDirectory(this.siteBaseUrl, this.initialPage, this.messageLogger, this.errorLogger, 0);
         await this.siteDirectory.initialize();
         console.log('SiteScraperClass.initialize done:' + this.initialPage)
+    }
+
+    initializeOtmObject(propertyDom) {
+        try {
+            const scripts = Array.from(propertyDom.window.document.querySelectorAll('script'));
+            scripts.forEach(script => {
+                const textPosition = script.textContent.search('__OTM__.jsonData');
+                if (textPosition !== -1) {
+                    //console.log(script.textContent);
+                    const code = script.textContent;
+                    //Initialize the context with a couple of different variables. 
+                    //We find that the script will crash if these variables are not defined.
+                    //Figured out by trail and error...
+                    const newContext = { window: {}, __OTM__: { currentQuery: {} } };
+                    vm.createContext(newContext); // Contextify the object.
+                    vm.runInContext(code, newContext);
+                    this.otmContex = newContext;
+                }
+            });
+        }
+        catch (error) {
+            this.otmContex = undefined;
+            console.log(error);
+        }
     }
 
     getPropertyUrls() {
@@ -183,6 +213,10 @@ class SiteScraperClass extends ScraperBaseClass {
         ];
     }
 
+    initializePropertyDom(propertyDom){
+        this.initializeOtmObject(propertyDom);
+    }
+
     getFeaturesDivText(propertyDom, searchText) {
         let returnText = '';
         const infoDivs = Array.from(propertyDom.window.document.querySelectorAll('section.otm-IconFeatures div div'));
@@ -196,6 +230,30 @@ class SiteScraperClass extends ScraperBaseClass {
     }
 
     getPropertyTypeFromDom(propertyDom) {
+        if(this.otmContex.__OTM__.jsonData && this.otmContex.__OTM__.jsonData['humanised-property-type']){
+            const type = this.otmContex.__OTM__.jsonData['humanised-property-type'];
+            if(type.toLowerCase().search('house') !== -1){
+                return 'house';
+            }
+            if(type.toLowerCase().search('bungalow') !== -1){
+                return 'house';
+            }
+            if(type.toLowerCase().search('park home') !== -1){
+                return 'house';
+            }
+            if(type.toLowerCase().search('flat') !== -1){
+                return 'flat';
+            }
+            if(type.toLowerCase().search('apartment') !== -1){
+                return 'flat';
+            }
+            if(type.toLowerCase().search('farm') !== -1){
+                return 'farm';
+            }
+            if(type.toLowerCase().search('land') !== -1){
+                return 'land';
+            }
+        }
         if (this.getFeaturesDivText(propertyDom, 'house') !== '') {
             return 'house';
         }
@@ -225,6 +283,11 @@ class SiteScraperClass extends ScraperBaseClass {
     }
 
     getPriceFromDom(propertyDom) {
+        if(this.otmContex.__OTM__.jsonData && this.otmContex.__OTM__.jsonData['price']){
+            const priceString = this.otmContex.__OTM__.jsonData['price'];
+            const price = parseFloat(priceString.replace(/\D/g, ''));
+            return price;
+        }
         const div = propertyDom.window.document.querySelector('div.otm-Price');
         if (div) {
             const priceString = div.textContent;
@@ -275,6 +338,7 @@ class SiteScraperClass extends ScraperBaseClass {
     getGetGoogleCoordinatesFromDom(propertyDom) {
         let latitude = -1000;
         let longitude = -1000;
+        /*
         const staticLocationImage = propertyDom.window.document.querySelector('section#property-map img.static-map');
         if (staticLocationImage) {
             const imageSrcString = staticLocationImage.attributes.src.textContent;
@@ -293,28 +357,24 @@ class SiteScraperClass extends ScraperBaseClass {
                 }
             }
         }
+        */
+        if(this.otmContex.__OTM__.jsonData && this.otmContex.__OTM__.jsonData['location']){
+            latitude = parseFloat(this.otmContex.__OTM__.jsonData['location'].lat);
+            longitude = parseFloat(this.otmContex.__OTM__.jsonData['location'].lon);
+        }
         return { latitude, longitude };
     }
 
     getImageUrlsFromDom(propertyDom) {
         //images are not visible initially. They are loaded using a script. Find the script and 
         //get image urls from there...
-        /*
         const imageUrls = [];
-        const images = Array.from(propertyDom.window.document.querySelectorAll('div.tabs-container.photos div.tab-content li.slide picture img'));
-        images.forEach(image => {
-            imageUrls.push(image.attributes.src.textContent);
-        });
+        if(this.otmContex.__OTM__.jsonData && this.otmContex.__OTM__.jsonData['images']){
+            this.otmContex.__OTM__.jsonData['images'].forEach(image => {
+                imageUrls.push({large:image['large-url'], preview:image['url']});
+            });
+        }
         return imageUrls;
-        */
-        const scripts = Array.from(propertyDom.window.document.querySelectorAll('script'));
-        scripts.forEach(script => {
-            const textPosition = script.textContent.search('__OTM__.jsonData');
-            if (textPosition !== -1) {
-                console.log(script.textContent)
-                require(script.textContent)
-            }
-        });
     }
 }
 
