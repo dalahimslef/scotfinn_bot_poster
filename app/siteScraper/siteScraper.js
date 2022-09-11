@@ -16,11 +16,14 @@ exports.testScraper = async (sitename, messageLogger, errorLogger) => {
         const SiteScraper = require(elementPath + '/SiteScraperClass.js');
         const scraper = new SiteScraper(messageLogger, errorLogger);
         console.log('scraper.initialize')
-        await scraper.initialize();
-        //propertyUrls = await scraper.getPropertyUrls();
+        const scrapeStart = Date.now();
+        //disabled FOR DEBUGGING
+        //await scraper.initialize();
         const { propertyInfo, invalidUrls } = await scraper.getPropertyInfo();
-        await this.postPropertiesInBatches(propertyInfo, invalidUrls, messageLogger, errorLogger, scrapeStart, scrapeEnd);
-        console.log(propertyInfo)
+        const scrapeEnd = Date.now();
+        //disabled FOR DEBUGGING
+        //await postPropertiesInBatches(propertyInfo, invalidUrls, messageLogger, errorLogger, scrapeStart, scrapeEnd);
+        //console.log(propertyInfo)
     }
     catch (error) {
         console.log(error);

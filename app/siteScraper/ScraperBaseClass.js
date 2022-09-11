@@ -1,6 +1,7 @@
 const got = require('got');
 const jsdom = require("jsdom");
 const { JSDOM } = jsdom;
+const domUtils = require('../utils/domUtils.js');
 
 class ScraperBaseClass {
   siteBaseUrl = '';
@@ -84,17 +85,18 @@ class ScraperBaseClass {
     return [];
   }
 
-  getFormattedAddressFromDom(propertyDom) {
-
+  getUnformattedAddressFromDom(propertyDom) {
+    return '';
   }
-  getGetGoogleCoordinatesFromDom(propertyDom) {
 
+  getGetGoogleCoordinatesFromDom(propertyDom) {
+    return { latitude: -1000, longitude: -1000 };
   }
 
   async getPropertyInfoFromUrl(propertyUrl) {
     const propertyDom = await domUtils.getDomFromUrl(propertyUrl);
     if (propertyDom) {
-      return {
+      const returnObject = {
         property_type: this.getPropertyTypeFromDom(propertyDom),
         sale_type: this.getSaleTypeFromDom(propertyDom),
         //ownership_type: 'ownership', //ownership, shared ownership
@@ -104,9 +106,11 @@ class ScraperBaseClass {
         bedroom_count: this.getBedroomCountFromDom(propertyDom),
         construction_year: this.getConstructionYearFromDom(propertyDom),
         image_urls: this.getImageUrlsFromDom(propertyDom),
-        formatted_address: this.getFormattedAddressFromDom(propertyDom),
+        unformatted_address: this.getUnformattedAddressFromDom(propertyDom),
         google_coordinates: this.getGetGoogleCoordinatesFromDom(propertyDom),
       }
+      console.log(returnObject);
+      return returnObject;
     }
     else {
       return false;
@@ -118,7 +122,8 @@ class ScraperBaseClass {
     const invalidUrls = [];
     const propertyUrls = await this.getPropertyUrls();
     for (let propertyUrl of propertyUrls) {
-      const info = this.getPropertyInfoFromUrl(propertyUrl);
+      console.log(propertyUrl);
+      const info = await this.getPropertyInfoFromUrl(propertyUrl);
       if (info) {
         propertyInfo.push(info);
       }

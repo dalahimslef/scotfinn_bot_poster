@@ -174,46 +174,47 @@ class SiteScraperClass extends ScraperBaseClass {
 
         //FOR DEBUGGING
         return [
-            'https://www.onthemarket.com/details/12293040/',
-            'https://www.onthemarket.com/details/12293030/',
-            'https://www.onthemarket.com/details/12293015/',
-            'https://www.onthemarket.com/details/12292989/',
-            'https://www.onthemarket.com/details/12292948/',
-            'https://www.onthemarket.com/details/12292948aaaaa/', //invalid url
+            'https://www.onthemarket.com/details/12293040/#/photos',
+            'https://www.onthemarket.com/details/12293030/#/photos',
+            'https://www.onthemarket.com/details/12293015/#/photos',
+            'https://www.onthemarket.com/details/12292989/#/photos',
+            'https://www.onthemarket.com/details/12292948/#/photos',
+            'https://www.onthemarket.com/details/12292948_invalidurl/#/photos', //invalid url
         ];
     }
 
-    getFeaturesDivText(searchText) {
+    getFeaturesDivText(propertyDom, searchText) {
+        let returnText = '';
         const infoDivs = Array.from(propertyDom.window.document.querySelectorAll('section.otm-IconFeatures div div'));
         infoDivs.forEach(infoDiv => {
             const textPosition = infoDiv.textContent.toLowerCase().search(searchText.toLowerCase());
             if (textPosition !== -1) {
-                return infoDiv.textContent.trim();
+                returnText = infoDiv.textContent.trim();
             }
         });
-        return '';
+        return returnText;
     }
 
     getPropertyTypeFromDom(propertyDom) {
-        if (this.getFeaturesDivText('house') !== '') {
+        if (this.getFeaturesDivText(propertyDom, 'house') !== '') {
             return 'house';
         }
-        if (this.getFeaturesDivText('bungalow') !== '') {
+        if (this.getFeaturesDivText(propertyDom, 'bungalow') !== '') {
             return 'house';
         }
-        if (this.getFeaturesDivText('park home') !== '') {
+        if (this.getFeaturesDivText(propertyDom, 'park home') !== '') {
             return 'house';
         }
-        if (this.getFeaturesDivText('flat') !== '') {
+        if (this.getFeaturesDivText(propertyDom, 'flat') !== '') {
             return 'flat';
         }
-        if (this.getFeaturesDivText('apartment') !== '') {
+        if (this.getFeaturesDivText(propertyDom, 'apartment') !== '') {
             return 'flat';
         }
-        if (this.getFeaturesDivText('farm') !== '') {
+        if (this.getFeaturesDivText(propertyDom, 'farm') !== '') {
             return 'farm';
         }
-        if (this.getFeaturesDivText('land') !== '') {
+        if (this.getFeaturesDivText(propertyDom, 'land') !== '') {
             return 'land';
         }
         return '';
@@ -234,7 +235,7 @@ class SiteScraperClass extends ScraperBaseClass {
     }
 
     getHouseSqmFromDom(propertyDom) {
-        const divText = this.getFeaturesDivText('sq m');
+        const divText = this.getFeaturesDivText(propertyDom, 'sq m');
         const parts = divText.split('/');
         if (parts[1]) {
             const words = parts[1].trim().split(' ');
@@ -250,7 +251,7 @@ class SiteScraperClass extends ScraperBaseClass {
     }
 
     getBedroomCountFromDom(propertyDom) {
-        const divText = this.getFeaturesDivText('beds');
+        const divText = this.getFeaturesDivText(propertyDom, 'bed');
         const words = divText.split(' ');
         if (words[0]) {
             return parseInt(words[0]);
@@ -260,6 +261,15 @@ class SiteScraperClass extends ScraperBaseClass {
 
     getConstructionYearFromDom(propertyDom) {
         return -1;
+    }
+
+    getUnformattedAddressFromDom(propertyDom) {
+        const div = propertyDom.window.document.querySelector('section.otm-Title.title-details div:nth-of-type(2) div:nth-of-type(2)');
+        if (div) {
+            const address = div.textContent;
+            return address.trim();
+        }
+        return '';
     }
 
     getGetGoogleCoordinatesFromDom(propertyDom) {
@@ -287,12 +297,24 @@ class SiteScraperClass extends ScraperBaseClass {
     }
 
     getImageUrlsFromDom(propertyDom) {
+        //images are not visible initially. They are loaded using a script. Find the script and 
+        //get image urls from there...
+        /*
         const imageUrls = [];
         const images = Array.from(propertyDom.window.document.querySelectorAll('div.tabs-container.photos div.tab-content li.slide picture img'));
         images.forEach(image => {
             imageUrls.push(image.attributes.src.textContent);
         });
         return imageUrls;
+        */
+        const scripts = Array.from(propertyDom.window.document.querySelectorAll('script'));
+        scripts.forEach(script => {
+            const textPosition = script.textContent.search('__OTM__.jsonData');
+            if (textPosition !== -1) {
+                console.log(script.textContent)
+                require(script.textContent)
+            }
+        });
     }
 }
 
