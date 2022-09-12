@@ -79,6 +79,6 @@ postPropertiesInBatches = async (propertyInfo, invalidUrls, messageLogger, error
             }
             ndx += 1;
         }
-        await api.postBotStories(propertyInfoBatch, invalidUrlsBatch, errorLogger.getErrors(), scrapeStart, scrapeEnd);
+        await api.postBotProperties(propertyInfoBatch, invalidUrlsBatch, errorLogger.getErrors(), scrapeStart, scrapeEnd);
     }
 }
