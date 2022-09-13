@@ -113,6 +113,7 @@ class ScraperBaseClass {
         image_urls: this.getImageUrlsFromDom(propertyDom),
         unformatted_address: this.getUnformattedAddressFromDom(propertyDom),
         google_coordinates: this.getGetGoogleCoordinatesFromDom(propertyDom),
+        property_url:propertyUrl,
       }
       console.log(returnObject);
       return returnObject;
