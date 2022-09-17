@@ -22,11 +22,16 @@ exports.testScraper = async (sitename, messageLogger, errorLogger) => {
         const { propertyInfo, invalidUrls } = await scraper.getPropertyInfo();
         const scrapeEnd = Date.now();
         //disabled FOR DEBUGGING
-        //await postPropertiesInBatches(propertyInfo, invalidUrls, messageLogger, errorLogger, scrapeStart, scrapeEnd);
+        await postPropertiesInBatches(propertyInfo, invalidUrls, messageLogger, errorLogger, scrapeStart, scrapeEnd);
         //console.log(propertyInfo)
     }
     catch (error) {
-        console.log(error);
+        if (error.message) {
+            console.log(error.message);
+        }
+        else {
+            console.log(error);
+        }
     }
     return propertyUrls;
 }
@@ -63,9 +68,9 @@ postPropertiesInBatches = async (propertyInfo, invalidUrls, messageLogger, error
     const batchSize = 50;
 
     let ndx = 0;
-    messageLogger.logMessage('Posting stories in batches');
+    messageLogger.logMessage('Posting properties in batches');
     while (propertyInfo[ndx] || invalidUrls[ndx]) {
-        messageLogger.logMessage('Posting story batch');
+        messageLogger.logMessage('Posting property batch');
         let propertyInfoBatch = [];
         let invalidUrlsBatch = [];
 

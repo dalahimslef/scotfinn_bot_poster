@@ -89,18 +89,52 @@ class ScraperBaseClass {
     return '';
   }
 
-  getGetGoogleCoordinatesFromDom(propertyDom) {
-    return { latitude: -1000, longitude: -1000 };
+  getGetGoogleLatitudeFromDom(propertyDom) {
+    return -1000;
   }
 
-  initializePropertyDom(propertyDom){
-    
+  getGetGoogleLongitudeFromDom(propertyDom) {
+    return -1000;
+  }
+
+  getGetFormattedAdressFromDom(propertyDom) {
+    return '';
+  }
+
+  getGetAddressComponentsFromDom(propertyDom) {
+    return [];
+  }
+
+  getGeCountryFromDom(propertyDom) {
+    return '';
+  }
+
+  getAgentFromDom(propertyDom) {
+    return { name: '', logo_url: '', website: '', email:'', phone: '' };
+  }
+
+  initializePropertyDom(propertyDom) {
+
   }
 
   async getPropertyInfoFromUrl(propertyUrl) {
     const propertyDom = await domUtils.getDomFromUrl(propertyUrl);
     if (propertyDom) {
       this.initializePropertyDom(propertyDom);
+
+      /*
+      image_urls: [{
+        image: type: String,
+        thumbnail: type: String,
+      }]
+      unformatted_address: type: String
+      formattedAdress: type: String
+      addressComponents: type: Array
+      country: type: String
+      google_latitude: type: Number
+      google_longitude: type: Number
+      */
+
       const returnObject = {
         property_type: this.getPropertyTypeFromDom(propertyDom),
         sale_type: this.getSaleTypeFromDom(propertyDom),
@@ -112,8 +146,13 @@ class ScraperBaseClass {
         construction_year: this.getConstructionYearFromDom(propertyDom),
         image_urls: this.getImageUrlsFromDom(propertyDom),
         unformatted_address: this.getUnformattedAddressFromDom(propertyDom),
-        google_coordinates: this.getGetGoogleCoordinatesFromDom(propertyDom),
-        property_url:propertyUrl,
+        google_latitude: this.getGetGoogleLatitudeFromDom(propertyDom),
+        google_longitude: this.getGetGoogleLongitudeFromDom(propertyDom),
+        formattedAdress: this.getGetFormattedAdressFromDom(propertyDom),
+        addressComponents: this.getGetAddressComponentsFromDom(propertyDom),
+        country: this.getGeCountryFromDom(propertyDom),
+        agent: this.getAgentFromDom(propertyDom),
+        property_url: propertyUrl,
       }
       console.log(returnObject);
       return returnObject;

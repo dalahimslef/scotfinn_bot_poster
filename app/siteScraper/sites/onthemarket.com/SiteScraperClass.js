@@ -213,7 +213,7 @@ class SiteScraperClass extends ScraperBaseClass {
         ];
     }
 
-    initializePropertyDom(propertyDom){
+    initializePropertyDom(propertyDom) {
         this.initializeOtmObject(propertyDom);
     }
 
@@ -230,27 +230,27 @@ class SiteScraperClass extends ScraperBaseClass {
     }
 
     getPropertyTypeFromDom(propertyDom) {
-        if(this.otmContex.__OTM__.jsonData && this.otmContex.__OTM__.jsonData['humanised-property-type']){
+        if (this.otmContex.__OTM__.jsonData && this.otmContex.__OTM__.jsonData['humanised-property-type']) {
             const type = this.otmContex.__OTM__.jsonData['humanised-property-type'];
-            if(type.toLowerCase().search('house') !== -1){
+            if (type.toLowerCase().search('house') !== -1) {
                 return 'house';
             }
-            if(type.toLowerCase().search('bungalow') !== -1){
+            if (type.toLowerCase().search('bungalow') !== -1) {
                 return 'house';
             }
-            if(type.toLowerCase().search('park home') !== -1){
+            if (type.toLowerCase().search('park home') !== -1) {
                 return 'house';
             }
-            if(type.toLowerCase().search('flat') !== -1){
+            if (type.toLowerCase().search('flat') !== -1) {
                 return 'flat';
             }
-            if(type.toLowerCase().search('apartment') !== -1){
+            if (type.toLowerCase().search('apartment') !== -1) {
                 return 'flat';
             }
-            if(type.toLowerCase().search('farm') !== -1){
+            if (type.toLowerCase().search('farm') !== -1) {
                 return 'farm';
             }
-            if(type.toLowerCase().search('land') !== -1){
+            if (type.toLowerCase().search('land') !== -1) {
                 return 'land';
             }
         }
@@ -283,7 +283,7 @@ class SiteScraperClass extends ScraperBaseClass {
     }
 
     getPriceFromDom(propertyDom) {
-        if(this.otmContex.__OTM__.jsonData && this.otmContex.__OTM__.jsonData['price']){
+        if (this.otmContex.__OTM__.jsonData && this.otmContex.__OTM__.jsonData['price']) {
             const priceString = this.otmContex.__OTM__.jsonData['price'];
             const price = parseFloat(priceString.replace(/\D/g, ''));
             return price;
@@ -335,10 +335,8 @@ class SiteScraperClass extends ScraperBaseClass {
         return '';
     }
 
+    /*
     getGetGoogleCoordinatesFromDom(propertyDom) {
-        let latitude = -1000;
-        let longitude = -1000;
-        /*
         const staticLocationImage = propertyDom.window.document.querySelector('section#property-map img.static-map');
         if (staticLocationImage) {
             const imageSrcString = staticLocationImage.attributes.src.textContent;
@@ -357,24 +355,55 @@ class SiteScraperClass extends ScraperBaseClass {
                 }
             }
         }
-        */
-        if(this.otmContex.__OTM__.jsonData && this.otmContex.__OTM__.jsonData['location']){
+    }
+    */
+
+    getGetGoogleLatitudeFromDom(propertyDom) {
+        let latitude = -1000;
+        if (this.otmContex.__OTM__.jsonData && this.otmContex.__OTM__.jsonData['location']) {
             latitude = parseFloat(this.otmContex.__OTM__.jsonData['location'].lat);
+        }
+        return latitude;
+    }
+
+    getGetGoogleLongitudeFromDom(propertyDom) {
+        let longitude = -1000;
+        if (this.otmContex.__OTM__.jsonData && this.otmContex.__OTM__.jsonData['location']) {
             longitude = parseFloat(this.otmContex.__OTM__.jsonData['location'].lon);
         }
-        return { latitude, longitude };
+        return longitude;
     }
 
     getImageUrlsFromDom(propertyDom) {
         //images are not visible initially. They are loaded using a script. Find the script and 
         //get image urls from there...
         const imageUrls = [];
-        if(this.otmContex.__OTM__.jsonData && this.otmContex.__OTM__.jsonData['images']){
+        if (this.otmContex.__OTM__.jsonData && this.otmContex.__OTM__.jsonData['images']) {
             this.otmContex.__OTM__.jsonData['images'].forEach(image => {
-                imageUrls.push({large:image['large-url'], preview:image['url']});
+                imageUrls.push({ large: image['large-url'], preview: image['url'] });
             });
         }
         return imageUrls;
+    }
+
+    getAgentFromDom(propertyDom) {
+        const agentInfo = { name: '', logo_url: '', website: '', email:'', phone: '' };
+        if (this.otmContex.__OTM__.jsonData && this.otmContex.__OTM__.jsonData['agent']) {
+            if (this.otmContex.__OTM__.jsonData['agent']['company_name']) {
+                agentInfo.name = this.otmContex.__OTM__.jsonData['agent']['company_name'];
+            }
+            if (this.otmContex.__OTM__.jsonData['agent']['display-logo'] && this.otmContex.__OTM__.jsonData['agent']['display-logo']['url']) {
+                agentInfo.logo_url = this.otmContex.__OTM__.jsonData['agent']['display-logo']['url'];
+            }
+            if (this.otmContex.__OTM__.jsonData['agent']['website-url']) {
+                agentInfo.website = this.otmContex.__OTM__.jsonData['agent']['website-url'];
+            }
+            if (this.otmContex.__OTM__.jsonData['agent']['telephone']) {
+                agentInfo.phone = this.otmContex.__OTM__.jsonData['agent']['telephone'];
+            }
+        }
+
+        return agentInfo;
     }
 }
 
