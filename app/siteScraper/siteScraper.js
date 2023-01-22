@@ -13,6 +13,8 @@ exports.testScraper = async (sitename, messageLogger, errorLogger) => {
     let propertyUrls = [];
     try {
         const elementPath = __dirname + '/sites/' + sitename;
+        scrapeSite(elementPath, messageLogger, errorLogger);
+        /*
         const SiteScraper = require(elementPath + '/SiteScraperClass.js');
         const scraper = new SiteScraper(messageLogger, errorLogger);
         console.log('scraper.initialize')
@@ -24,6 +26,7 @@ exports.testScraper = async (sitename, messageLogger, errorLogger) => {
         //disabled FOR DEBUGGING
         await postPropertiesInBatches(propertyInfo, invalidUrls, messageLogger, errorLogger, scrapeStart, scrapeEnd);
         //console.log(propertyInfo)
+        */
     }
     catch (error) {
         if (error.message) {
@@ -36,7 +39,7 @@ exports.testScraper = async (sitename, messageLogger, errorLogger) => {
     return propertyUrls;
 }
 
-/*
+
 exports.postProperties = async (messageLogger, errorLogger) => {
     try {
         const path = __dirname + '/sites';
@@ -46,9 +49,20 @@ exports.postProperties = async (messageLogger, errorLogger) => {
             if (elementName.substr(0, 1) != '_') {
                 const elementPath = path + '/' + elementName;
                 if (fs.lstatSync(elementPath).isDirectory()) {
+                    scrapeSite(elementPath, messageLogger, errorLogger);
+                    /*
                     const SiteScraper = require(elementPath + '/SiteScraperClass.js');
                     const scraper = new SiteScraper(messageLogger, errorLogger);
-                    let storyUrls = await scraper.getProperties();
+                    console.log('scraper.initialize')
+                    const scrapeStart = Date.now();
+                    //disabled FOR DEBUGGING
+                    //await scraper.initialize();
+                    const { propertyInfo, invalidUrls } = await scraper.getPropertyInfo();
+                    const scrapeEnd = Date.now();
+                    //disabled FOR DEBUGGING
+                    await postPropertiesInBatches(propertyInfo, invalidUrls, messageLogger, errorLogger, scrapeStart, scrapeEnd);
+                    //console.log(propertyInfo)
+                    */
                 }
             }
         }
@@ -61,7 +75,7 @@ exports.postProperties = async (messageLogger, errorLogger) => {
         errorLogger.logError("Some uncaught error in postStories function:" + message);
     }
 }
-*/
+
 
 postPropertiesInBatches = async (propertyInfo, invalidUrls, messageLogger, errorLogger, scrapeStart, scrapeEnd) => {
     //To avoid the chance of posting too much data at once, we split the post up in batches
@@ -85,5 +99,24 @@ postPropertiesInBatches = async (propertyInfo, invalidUrls, messageLogger, error
             ndx += 1;
         }
         await api.postBotProperties(propertyInfoBatch, invalidUrlsBatch, errorLogger.getErrors(), scrapeStart, scrapeEnd);
+    }
+}
+
+scrapeSite = async (elementPath, messageLogger, errorLogger) => {
+    try {
+        const SiteScraper = require(elementPath + '/SiteScraperClass.js');
+        const scraper = new SiteScraper(messageLogger, errorLogger);
+        console.log('scraper.initialize')
+        const scrapeStart = Date.now();
+        //disabled FOR DEBUGGING
+        //await scraper.initialize();
+        const { propertyInfo, invalidUrls } = await scraper.getPropertyInfo();
+        const scrapeEnd = Date.now();
+        //disabled FOR DEBUGGING
+        await postPropertiesInBatches(propertyInfo, invalidUrls, messageLogger, errorLogger, scrapeStart, scrapeEnd);
+        //console.log(propertyInfo)
+    }
+    catch (error) {
+        throw error;
     }
 }

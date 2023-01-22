@@ -1,5 +1,6 @@
 const got = require('got');
 const jsdom = require("jsdom");
+const api = require('../api/api.js');
 const { JSDOM } = jsdom;
 const domUtils = require('../utils/domUtils.js');
 
@@ -165,6 +166,7 @@ class ScraperBaseClass {
   async getPropertyInfo() {
     const propertyInfo = [];
     const invalidUrls = [];
+    const existingPropertyUrls = api.getSitePropertyUrls(this.siteBaseUrl);
     const propertyUrls = await this.getPropertyUrls();
     for (let propertyUrl of propertyUrls) {
       console.log(propertyUrl);

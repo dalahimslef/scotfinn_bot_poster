@@ -40,7 +40,7 @@ async function startLoop() {
                 await api.saveBotStatus(botStatus);
                 botStatusMessage += 'Starting scraper<br>';
                 messageLogger.logMessage('Starting scraper');
-                await scraper.postStories(messageLogger, errorLogger);
+                await scraper.postProperties(messageLogger, errorLogger);
                 //await scraper.testScraper('intellectualtakeout.org');
                 botStatus.completedloops += 1;
                 botStatus.lastLoopStartTimestamp = startTimestamp;

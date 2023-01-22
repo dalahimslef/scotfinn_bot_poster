@@ -894,6 +894,25 @@ const getBotPostedUrls = async (params) => {
     return postedUrls;
 }
 
+const getSitePropertyUrls = async (siteUrl) => {
+    const config = {
+        method: 'get',
+        baseURL: baseUrl,
+        url: '/api/bot_posted_url',
+        params: {
+            siteUrl
+        }
+    }
+    const response = await getAxiosResponse(config);
+
+    let postedUrls = [];
+    if (response.data) {
+        postedUrls = response.data;
+    }
+
+    return postedUrls;
+}
+
 const getBotStatus = async (params) => {
     const config = {
         method: 'get',
@@ -1028,4 +1047,5 @@ exports.getBotStatus = getBotStatus;
 exports.botStart = botStart;
 exports.saveBotStatus = saveBotStatus;
 exports.setBotIdle = setBotIdle;
+exports.getSitePropertyUrls = getSitePropertyUrls;
 
