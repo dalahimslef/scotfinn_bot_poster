@@ -110,7 +110,7 @@ scrapeSite = async (elementPath, messageLogger, errorLogger) => {
         const scrapeStart = Date.now();
         //disabled FOR DEBUGGING
         //await scraper.initialize();
-        const { propertyInfo, invalidUrls } = await scraper.getPropertyInfo();
+        const { propertyInfo, invalidUrls, propertiesToDelete  } = await scraper.getPropertyInfo();
         const scrapeEnd = Date.now();
         //disabled FOR DEBUGGING
         await postPropertiesInBatches(propertyInfo, invalidUrls, messageLogger, errorLogger, scrapeStart, scrapeEnd);

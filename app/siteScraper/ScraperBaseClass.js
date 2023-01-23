@@ -1,3 +1,4 @@
+const { UnsupportedProtocolError } = require('got');
 const got = require('got');
 const jsdom = require("jsdom");
 const api = require('../api/api.js');
@@ -5,6 +6,7 @@ const { JSDOM } = jsdom;
 const domUtils = require('../utils/domUtils.js');
 
 class ScraperBaseClass {
+  siteName = '';
   siteBaseUrl = '';
   emptySelector = 'div.dummy_empty_selector'; //To select nothing
   errorLogger = undefined;
@@ -111,7 +113,7 @@ class ScraperBaseClass {
   }
 
   getAgentFromDom(propertyDom) {
-    return { name: '', logo_url: '', website: '', email:'', phone: '' };
+    return { name: '', logo_url: '', website: '', email: '', phone: '' };
   }
 
   initializePropertyDom(propertyDom) {
@@ -163,22 +165,46 @@ class ScraperBaseClass {
     }
   }
 
+  async getExistingProperties() {
+    const existingProperties = {};
+    const existingPropertyUrls = await api.getSitePropertyUrls(this.siteName);
+    existingPropertyUrls.forEach(property => {
+      existingProperties[property.property_url] = property;
+    });
+    return existingProperties;
+  }
+
   async getPropertyInfo() {
     const propertyInfo = [];
     const invalidUrls = [];
-    const existingPropertyUrls = api.getSitePropertyUrls(this.siteBaseUrl);
+    const propertiesToDelete = [];
+    const existingPropertyUrls = await getExistingProperties();
+    const nenexistentProperties = {};
+
+    Object.keys(existingPropertyUrls).forEach(url => {
+      nenexistentProperties[url] = url;
+    })
+
     const propertyUrls = await this.getPropertyUrls();
     for (let propertyUrl of propertyUrls) {
-      console.log(propertyUrl);
-      const info = await this.getPropertyInfoFromUrl(propertyUrl);
-      if (info) {
-        propertyInfo.push(info);
+      if (nenexistentProperties[propertyUrl]) {
+        delete nenexistentProperties[propertyUrl];
       }
-      else {
-        invalidUrls.push(propertyUrl);
+      if (!existingPropertyUrls[propertyUrl]) {
+        console.log(propertyUrl);
+        const info = await this.getPropertyInfoFromUrl(propertyUrl);
+        if (info) {
+          propertyInfo.push(info);
+        }
+        else {
+          invalidUrls.push(propertyUrl);
+        }
       }
     }
-    return { propertyInfo, invalidUrls };
+    Object.keys(nenexistentProperties).forEach(url => {
+      propertiesToDelete.push(url);
+    })
+    return { propertyInfo, invalidUrls, propertiesToDelete };
   }
 }
 

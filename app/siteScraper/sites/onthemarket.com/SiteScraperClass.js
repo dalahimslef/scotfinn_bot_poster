@@ -157,6 +157,7 @@ class SiteDirectory {
 
 class SiteScraperClass extends ScraperBaseClass {
     siteBaseUrl = 'https://www.onthemarket.com/';
+    siteName = 'www.onthemarket.com';
     initialPage = 'for-sale/property/uk/';
     siteDirectory = undefined;
 
@@ -164,7 +165,8 @@ class SiteScraperClass extends ScraperBaseClass {
 
     constructor(messageLogger, errorLogger) {
         super(messageLogger, errorLogger);
-        this.siteBaseUrl = "https://www.onthemarket.com/"
+        this.siteBaseUrl = "https://www.onthemarket.com/";
+        this.siteName = 'www.onthemarket.com';
     }
 
     async initialize() {

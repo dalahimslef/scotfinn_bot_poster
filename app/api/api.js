@@ -894,13 +894,13 @@ const getBotPostedUrls = async (params) => {
     return postedUrls;
 }
 
-const getSitePropertyUrls = async (siteUrl) => {
+const getSitePropertyUrls = async (siteName) => {
     const config = {
         method: 'get',
         baseURL: baseUrl,
-        url: '/api/bot_posted_url',
+        url: '/api/properties/site',
         params: {
-            siteUrl
+            siteName
         }
     }
     const response = await getAxiosResponse(config);
