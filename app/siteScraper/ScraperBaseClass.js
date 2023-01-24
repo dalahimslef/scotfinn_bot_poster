@@ -177,18 +177,18 @@ class ScraperBaseClass {
   async getPropertyInfo() {
     const propertyInfo = [];
     const invalidUrls = [];
-    const propertiesToDelete = [];
-    const existingPropertyUrls = await getExistingProperties();
-    const nenexistentProperties = {};
+    const propertiyUrlsToDelete = [];
+    const existingPropertyUrls = await this.getExistingProperties();
+    const nonexistentProperties = {};
 
     Object.keys(existingPropertyUrls).forEach(url => {
-      nenexistentProperties[url] = url;
+      nonexistentProperties[url] = url;
     })
 
     const propertyUrls = await this.getPropertyUrls();
     for (let propertyUrl of propertyUrls) {
-      if (nenexistentProperties[propertyUrl]) {
-        delete nenexistentProperties[propertyUrl];
+      if (nonexistentProperties[propertyUrl]) {
+        delete nonexistentProperties[propertyUrl];
       }
       if (!existingPropertyUrls[propertyUrl]) {
         console.log(propertyUrl);
@@ -201,10 +201,10 @@ class ScraperBaseClass {
         }
       }
     }
-    Object.keys(nenexistentProperties).forEach(url => {
-      propertiesToDelete.push(url);
+    Object.keys(nonexistentProperties).forEach(url => {
+      propertiyUrlsToDelete.push(url);
     })
-    return { propertyInfo, invalidUrls, propertiesToDelete };
+    return { propertyInfo, invalidUrls, propertiyUrlsToDelete };
   }
 }
 

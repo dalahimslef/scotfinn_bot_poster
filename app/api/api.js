@@ -389,6 +389,20 @@ const deleteCategory = async (category_id) => {
     return response;
 }
 
+const deleteProperties = async (property_urls, site_name) => {
+    const data = { property_urls, site_name };
+
+    const config = {
+        method: 'delete',
+        baseURL: baseUrl,
+        url: '/api/properties',
+        data: data,
+    }
+    const response = await getAxiosResponse(config);
+
+    return response;
+}
+
 const getUrlsFromTags = async (tag_ids, page) => {
     // returns max 100 urls per 'page'
     const config = {
@@ -1048,4 +1062,5 @@ exports.botStart = botStart;
 exports.saveBotStatus = saveBotStatus;
 exports.setBotIdle = setBotIdle;
 exports.getSitePropertyUrls = getSitePropertyUrls;
+exports.deleteProperties = deleteProperties;
 
