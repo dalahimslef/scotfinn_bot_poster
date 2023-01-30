@@ -888,6 +888,34 @@ const postBotProperties = async (properties, invalidUrls, errors, scrapeStart, s
     return response;
 }
 
+const postBotMessages = async (messages) => {
+    // messages is an array of {message, type}
+    const config = {
+        method: 'post',
+        baseURL: baseUrl,
+        url: '/api/bot_message',
+        data: {
+            messages
+        }
+    }
+    const response = await getAxiosResponse(config);
+
+    return response;
+}
+
+const deleteBotMessages = async () => {
+    const config = {
+        method: 'delete',
+        baseURL: baseUrl,
+        url: '/api/bot_message',
+        data: {
+        }
+    }
+    const response = await getAxiosResponse(config);
+
+    return response;
+}
+
 const getBotPostedUrls = async (params) => {
     const config = {
         method: 'get',
@@ -1063,4 +1091,6 @@ exports.saveBotStatus = saveBotStatus;
 exports.setBotIdle = setBotIdle;
 exports.getSitePropertyUrls = getSitePropertyUrls;
 exports.deleteProperties = deleteProperties;
+exports.postBotMessages = postBotMessages;
+exports.deleteBotMessages = deleteBotMessages;
 

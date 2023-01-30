@@ -10,6 +10,7 @@ getRandomInt = (min, max) => {
 }
 
 exports.testScraper = async (sitename, messageLogger, errorLogger) => {
+    await api.deleteBotMessages();
     let propertyUrls = [];
     try {
         const elementPath = __dirname + '/sites/' + sitename;
@@ -42,6 +43,7 @@ exports.testScraper = async (sitename, messageLogger, errorLogger) => {
 
 exports.postProperties = async (messageLogger, errorLogger) => {
     try {
+        await api.deleteBotMessages();
         const path = __dirname + '/sites';
         const folderContent = fs.readdirSync(path);
         let propertyInfo = [];
@@ -110,12 +112,18 @@ scrapeSite = async (elementPath, messageLogger, errorLogger) => {
         const scrapeStart = Date.now();
         //disabled FOR DEBUGGING
         //await scraper.initialize();
-        const { propertyInfo, invalidUrls, propertiyUrlsToDelete  } = await scraper.getPropertyInfo();
+        const { propertyInfo, invalidUrls, propertiyUrlsToDelete } = await scraper.getPropertyInfo();
         const scrapeEnd = Date.now();
         //disabled FOR DEBUGGING
         await postPropertiesInBatches(propertyInfo, invalidUrls, messageLogger, errorLogger, scrapeStart, scrapeEnd);
         //console.log(propertyInfo)
         await api.deleteProperties(propertiyUrlsToDelete, scraper.siteName);
+        const allMessages = [];
+        let messages = messageLogger.getMessages();
+        messages.forEach(msg => { allMessages.push({ message: msg, type: 'message' }); });
+        messages = errorLogger.getErrors();
+        messages.forEach(msg => { allMessages.push({ message: msg, type: 'error' }); });
+        await api.postBotMessages(allMessages);
     }
     catch (error) {
         throw error;
