@@ -15,19 +15,6 @@ exports.testScraper = async (sitename, messageLogger, errorLogger) => {
     try {
         const elementPath = __dirname + '/sites/' + sitename;
         scrapeSite(elementPath, messageLogger, errorLogger);
-        /*
-        const SiteScraper = require(elementPath + '/SiteScraperClass.js');
-        const scraper = new SiteScraper(messageLogger, errorLogger);
-        console.log('scraper.initialize')
-        const scrapeStart = Date.now();
-        //disabled FOR DEBUGGING
-        //await scraper.initialize();
-        const { propertyInfo, invalidUrls } = await scraper.getPropertyInfo();
-        const scrapeEnd = Date.now();
-        //disabled FOR DEBUGGING
-        await postPropertiesInBatches(propertyInfo, invalidUrls, messageLogger, errorLogger, scrapeStart, scrapeEnd);
-        //console.log(propertyInfo)
-        */
     }
     catch (error) {
         if (error.message) {
@@ -52,19 +39,6 @@ exports.postProperties = async (messageLogger, errorLogger) => {
                 const elementPath = path + '/' + elementName;
                 if (fs.lstatSync(elementPath).isDirectory()) {
                     scrapeSite(elementPath, messageLogger, errorLogger);
-                    /*
-                    const SiteScraper = require(elementPath + '/SiteScraperClass.js');
-                    const scraper = new SiteScraper(messageLogger, errorLogger);
-                    console.log('scraper.initialize')
-                    const scrapeStart = Date.now();
-                    //disabled FOR DEBUGGING
-                    //await scraper.initialize();
-                    const { propertyInfo, invalidUrls } = await scraper.getPropertyInfo();
-                    const scrapeEnd = Date.now();
-                    //disabled FOR DEBUGGING
-                    await postPropertiesInBatches(propertyInfo, invalidUrls, messageLogger, errorLogger, scrapeStart, scrapeEnd);
-                    //console.log(propertyInfo)
-                    */
                 }
             }
         }
@@ -110,11 +84,11 @@ scrapeSite = async (elementPath, messageLogger, errorLogger) => {
         const scraper = new SiteScraper(messageLogger, errorLogger);
         console.log('scraper.initialize')
         const scrapeStart = Date.now();
-        //disabled FOR DEBUGGING
-        //await scraper.initialize();
+        //disable FOR DEBUGGING
+        await scraper.initialize();
         const { propertyInfo, invalidUrls, propertiyUrlsToDelete } = await scraper.getPropertyInfo();
         const scrapeEnd = Date.now();
-        //disabled FOR DEBUGGING
+        //disable FOR DEBUGGING
         await postPropertiesInBatches(propertyInfo, invalidUrls, messageLogger, errorLogger, scrapeStart, scrapeEnd);
         //console.log(propertyInfo)
         await api.deleteProperties(propertiyUrlsToDelete, scraper.siteName);

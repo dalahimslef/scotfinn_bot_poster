@@ -51,8 +51,6 @@ class SiteDirectory {
             let countFromDom = this.getPropertyCountFromDom();
             this.propertyCount = countFromDom.counter;
             this.subdirsRequired = countFromDom.tooMany;
-            //FOR DEBUGGING
-            // if (this.subdirsRequired && this.depth < 1) {
             if (this.subdirsRequired) {
                 this.childDirectories = await this.getChildDirectoriesFromDom();
             }
@@ -86,8 +84,6 @@ class SiteDirectory {
         //propertyUrls.forEach(propertyUrl => { allPropertyUrls.push(propertyUrl) });
         let propertyPageIndex = 1;
 
-        //FOR DEBUGGING
-        //while (morePropertiesAdded && propertyPageIndex < 2) {
         while (morePropertiesAdded) {
             let nextPropertyPageDom = await domUtils.getDomFromUrl(this.url + '/?page=' + propertyPageIndex);
             propertyUrls = this.getPropertyUrlsFromDom(nextPropertyPageDom);
@@ -202,9 +198,10 @@ class SiteScraperClass extends ScraperBaseClass {
 
     getPropertyUrls() {
         //The actual return:
-        //return this.siteDirectory.getAllChildPropertyUrls();
+        return this.siteDirectory.getAllChildPropertyUrls();
 
         //FOR DEBUGGING
+        /*
         return [
             'https://www.onthemarket.com/details/12293040/#/photos',
             'https://www.onthemarket.com/details/12293030/#/photos',
@@ -213,6 +210,7 @@ class SiteScraperClass extends ScraperBaseClass {
             'https://www.onthemarket.com/details/12292948/#/photos',
             'https://www.onthemarket.com/details/12292948_invalidurl/#/photos', //invalid url
         ];
+        */
     }
 
     initializePropertyDom(propertyDom) {
