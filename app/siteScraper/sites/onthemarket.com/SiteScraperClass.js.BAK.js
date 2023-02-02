@@ -151,101 +151,6 @@ class SiteDirectory {
     }
 }
 
-class dirParser {
-    maxConnections = 5;
-    activeConnections = 0;
-
-    connectionUp() {
-        this.activeConnections += 1;
-    }
-
-    connectionDown() {
-        this.activeConnections -= 1;
-        if (this.activeConnections < this.maxConnections) {
-            const nextDir = this.getNextDir();
-            this.getChildDirs(nextDir);
-        }
-    }
-
-    async getChildDirs(dirUrl) {
-        if (this.activeConnections < this.maxConnections) {
-            this.connectionUp();
-            const dom = await domUtils.getDomFromUrl(this.url);
-            const childDirUrls = this.getChildDirUrlsFromDom(dom);
-            dirUrls.forEach(dUrl => { this.getChildDirs(dUrl); });
-            this.connectionDown();
-        }
-    }
-
-    dirScanFinishedCallback() {
-
-    }
-
-    getNextPropertyUrl() {
-        this.currentPropertyUrl = this.propertyUrls.pop();
-        this.propertyPageNumber = 0;
-
-        if (!this.currentPropertyUrl) {
-            this.dirScanFinishedCallback();
-        }
-    }
-
-    getNextpropertyUrlPage() {
-        let nextDirUrl = this.currentPropertyUrl;
-        nextDirUrl = nextDirUrl + '?page=' + this.propertyPageNumber;
-        this.propertyPageNumber += 1;
-        return nextDirUrl;
-    }
-
-    async getPropertyUrls(propertyUrl) {
-        const dom = await domUtils.getDomFromUrl(propertyUrl);
-        if (dom) {
-            const childDirUrls = this.getChildDirUrlsFromDom(dom);
-        }
-        else {
-            this.getNextPropertyUrl();
-        }
-    }
-
-    scanForPropertyUrls() {
-        let nextDirUrl = this.getNextpropertyUrlPage();
-        while ((this.activeConnections < this.maxConnections)
-            && (nextDirUrl)) {
-            this.getPropertyUrls(nextDirUrl);
-            nextDirUrl = this.getNextpropertyUrl();
-        }
-        if ((this.activeConnections == 0) && (typeof nextDirUrl == 'undefined')) {
-            this.dirScanFinishedCallback();
-        }
-    }
-
-    scanForSubDirUrls() {
-        let nextDirUrl = this.dirUrls.pop();
-        while ((this.activeConnections < this.maxConnections)
-            && (nextDirUrl)) {
-            this.getChildDirs(nextDirUrl);
-            nextDirUrl = this.dirUrls.pop();
-        }
-        if ((this.activeConnections == 0) && (typeof nextDirUrl == 'undefined')) {
-            this.scanForPropertyUrls();
-        }
-    }
-
-    async getChildDirs(dirUrl) {
-        this.activeConnections += 1;
-        const dom = await domUtils.getDomFromUrl(this.url);
-        const childDirUrls = this.getChildDirUrlsFromDom(dom);
-        childDirUrls.foreach(url => { this.dirUrls.push(url) })
-        const propertyUrl = this.getPropertydUrlsFromDom(dom);
-        if (propertyUrl) {
-            this.propertyUrls.push(propertyUrl);
-        }
-        this.activeConnections -= 1;
-        this.scanForSubDirUrls();
-    }
-
-}
-
 class SiteScraperClass extends ScraperBaseClass {
     siteBaseUrl = 'https://www.onthemarket.com/';
     siteName = 'www.onthemarket.com';
@@ -482,7 +387,7 @@ class SiteScraperClass extends ScraperBaseClass {
     }
 
     getAgentFromDom(propertyDom) {
-        const agentInfo = { name: '', logo_url: '', website: '', email: '', phone: '' };
+        const agentInfo = { name: '', logo_url: '', website: '', email:'', phone: '' };
         if (this.otmContex.__OTM__.jsonData && this.otmContex.__OTM__.jsonData['agent']) {
             if (this.otmContex.__OTM__.jsonData['agent']['company_name']) {
                 agentInfo.name = this.otmContex.__OTM__.jsonData['agent']['company_name'];
