@@ -212,7 +212,7 @@ class dirParser {
         while ((this.activeConnections < this.maxConnections)
             && (nextDirUrl)) {
             this.getPropertyUrls(nextDirUrl);
-            nextDirUrl = this.getNextpropertyUrl();
+            nextDirUrl = this.getNextpropertyUrlPage();
         }
         if ((this.activeConnections == 0) && (typeof nextDirUrl == 'undefined')) {
             this.dirScanFinishedCallback();
@@ -233,12 +233,16 @@ class dirParser {
 
     async getChildDirs(dirUrl) {
         this.activeConnections += 1;
-        const dom = await domUtils.getDomFromUrl(this.url);
-        const childDirUrls = this.getChildDirUrlsFromDom(dom);
-        childDirUrls.foreach(url => { this.dirUrls.push(url) })
-        const propertyUrl = this.getPropertydUrlsFromDom(dom);
-        if (propertyUrl) {
-            this.propertyUrls.push(propertyUrl);
+        const dom = await domUtils.getDomFromUrl(dirUrl);
+        const { counter, tooMany } = getPropertyCountFromDom(dom);
+        if (tooMany) {
+            //if too many properties listed for this area (typically says +1000)
+            //we find all the subareasand store them for scanning in the dirUrls array
+            const childDirUrls = this.getChildDirUrlsFromDom(dom);
+            childDirUrls.foreach(url => { this.dirUrls.push(url) })
+        }
+        else {
+            this.propertyUrls.push(dirUrl);
         }
         this.activeConnections -= 1;
         this.scanForSubDirUrls();
