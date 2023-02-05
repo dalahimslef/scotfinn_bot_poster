@@ -151,7 +151,7 @@ class SiteDirectory {
     }
 }
 
-let scanCompeted = true;
+let scanCompeted = false;
 let completedResolve = function () { };
 
 function dirScanFinishedCallback() {
@@ -226,7 +226,7 @@ class dirParser {
         this.propertyPageNumber = 0;
 
         if (!this.currentPropertyUrl) {
-            this.dirScanFinishedCallback();
+            dirScanFinishedCallback();
         }
     }
 
@@ -313,9 +313,9 @@ class SiteScraperClass extends ScraperBaseClass {
         */
 
         this.dirParser = new dirParser(this.siteBaseUrl, this.initialPage, this.messageLogger, this.errorLogger, 0);
-        //this.dirParser.dirUrls.push(this.siteBaseUrl + this.initialPage);
-        //this.dirParser.scanForSubDirUrls();
-        testPromise();
+        this.dirParser.dirUrls.push(this.siteBaseUrl + this.initialPage);
+        this.dirParser.scanForSubDirUrls();
+        //testPromise();
         await awaitCompletion();
         console.log('done');
     }
