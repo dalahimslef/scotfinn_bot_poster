@@ -151,6 +151,30 @@ class SiteDirectory {
     }
 }
 
+let scanCompeted = true;
+let completedResolve = function () { };
+
+function dirScanFinishedCallback() {
+    scanCompeted = true;
+    completedResolve();
+}
+
+async function awaitCompletion() {
+    if (!scanCompeted) {
+        await new Promise((resolve) => {
+            console.log('waiting...');
+            completedResolve = resolve;
+        });
+    }
+    else {
+        console.log('no waiting required');
+    }
+}
+
+function testPromise() {
+    setTimeout(dirScanFinishedCallback, 10000);
+}
+
 class dirParser {
     maxConnections = 5;
     activeConnections = 0;
@@ -176,11 +200,27 @@ class dirParser {
             this.connectionDown();
         }
     }
-
-    dirScanFinishedCallback() {
-
-    }
-
+    /*
+        scanCompeted = false;
+        completedResolve = function () { };
+    
+        dirScanFinishedCallback() {
+            this.scanCompeted = true;
+            this.completedResolve();
+        }
+    
+        async awaitCompletion() {
+            if (!this.scanCompeted) {
+                await new Promise((resolve) => {
+                    this.completedResolve = resolve;
+                });
+            }
+        }
+    
+        testPromise() {
+            setTimeout(this.dirScanFinishedCallback, 3000);
+        }
+    */
     getNextPropertyUrl() {
         this.currentPropertyUrl = this.propertyUrls.pop();
         this.propertyPageNumber = 0;
@@ -254,7 +294,7 @@ class SiteScraperClass extends ScraperBaseClass {
     siteBaseUrl = 'https://www.onthemarket.com/';
     siteName = 'www.onthemarket.com';
     initialPage = 'for-sale/property/uk/';
-    siteDirectory = undefined;
+    siteParser = undefined;
 
     otmContext = undefined;
 
@@ -265,10 +305,19 @@ class SiteScraperClass extends ScraperBaseClass {
     }
 
     async initialize() {
+        /*
         console.log('SiteScraperClass.initialize:' + this.initialPage)
-        this.siteDirectory = new SiteDirectory(this.siteBaseUrl, this.initialPage, this.messageLogger, this.errorLogger, 0);
-        await this.siteDirectory.initialize();
+        this.siteParser = new SiteDirectory(this.siteBaseUrl, this.initialPage, this.messageLogger, this.errorLogger, 0);
+        await this.siteParser.initialize();
         console.log('SiteScraperClass.initialize done:' + this.initialPage)
+        */
+
+        this.dirParser = new dirParser(this.siteBaseUrl, this.initialPage, this.messageLogger, this.errorLogger, 0);
+        //this.dirParser.dirUrls.push(this.siteBaseUrl + this.initialPage);
+        //this.dirParser.scanForSubDirUrls();
+        testPromise();
+        await awaitCompletion();
+        console.log('done');
     }
 
     initializeOtmObject(propertyDom) {
@@ -297,7 +346,7 @@ class SiteScraperClass extends ScraperBaseClass {
 
     getPropertyUrls() {
         //The actual return:
-        return this.siteDirectory.getAllChildPropertyUrls();
+        return this.siteParser.getAllChildPropertyUrls();
 
         //FOR DEBUGGING
         /*
