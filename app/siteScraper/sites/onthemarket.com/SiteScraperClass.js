@@ -3,6 +3,7 @@ const ScraperBaseClass = require('../../ScraperBaseClass.js');
 const domUtils = require('../../../utils/domUtils.js');
 const vm = require('vm');
 
+/*
 class SiteDirectory {
     siteBaseUrl = undefined;
     path = undefined;
@@ -150,6 +151,7 @@ class SiteDirectory {
         return allChildPropertyUrls;
     }
 }
+*/
 
 let scanCompeted = false;
 let completedResolve = function () { };
@@ -178,49 +180,12 @@ function testPromise() {
 class dirParser {
     maxConnections = 5;
     activeConnections = 0;
+    currentPropertyUrl = undefined;
+    propertyPageNumber = 0;
+    noMorePropertiesAtCurrentUrl = false;
+    dirUrls = [];
+    propertyUrls = [];
 
-    connectionUp() {
-        this.activeConnections += 1;
-    }
-
-    connectionDown() {
-        this.activeConnections -= 1;
-        if (this.activeConnections < this.maxConnections) {
-            const nextDir = this.getNextDir();
-            this.getChildDirs(nextDir);
-        }
-    }
-
-    async getChildDirs(dirUrl) {
-        if (this.activeConnections < this.maxConnections) {
-            this.connectionUp();
-            const dom = await domUtils.getDomFromUrl(this.url);
-            const childDirUrls = this.getChildDirUrlsFromDom(dom);
-            dirUrls.forEach(dUrl => { this.getChildDirs(dUrl); });
-            this.connectionDown();
-        }
-    }
-    /*
-        scanCompeted = false;
-        completedResolve = function () { };
-    
-        dirScanFinishedCallback() {
-            this.scanCompeted = true;
-            this.completedResolve();
-        }
-    
-        async awaitCompletion() {
-            if (!this.scanCompeted) {
-                await new Promise((resolve) => {
-                    this.completedResolve = resolve;
-                });
-            }
-        }
-    
-        testPromise() {
-            setTimeout(this.dirScanFinishedCallback, 3000);
-        }
-    */
     getNextPropertyUrl() {
         this.currentPropertyUrl = this.propertyUrls.pop();
         this.propertyPageNumber = 0;
@@ -237,17 +202,44 @@ class dirParser {
         return nextDirUrl;
     }
 
-    async getPropertyUrls(propertyUrl) {
-        const dom = await domUtils.getDomFromUrl(propertyUrl);
+    getPropertyUrlsFromDom(dom) {
+        const propertyUrls = {};
+        const anchorSelector = 'li.otm-PropertyCard a';
+        const anchors = Array.from(dom.window.document.querySelectorAll(anchorSelector));
+
+        anchors.forEach(anchor => {
+            const href = anchor.attributes.href.textContent.replace(/^\/|\/$/g, '');//trim any first or last slashes
+            if (href.substring(0, 8) == 'details/') {
+                propertyUrls[href] = href;
+            }
+        });
+
+        return propertyUrls;
+    }
+
+    async getPropertyUrls(propertiesPageUrl) {
+        this.activeConnections += 1;
+        const dom = await domUtils.getDomFromUrl(propertiesPageUrl);
+        let addedProperties = 0;
+
         if (dom) {
-            const childDirUrls = this.getChildDirUrlsFromDom(dom);
+            const propertyUrls = this.getPropertyUrlsFromDom(dom);
+            Object.keys(propertyUrls).foreach(url => {
+                this.propertyUrls.push(url);
+                addedProperties += 1;
+            })
         }
-        else {
-            this.getNextPropertyUrl();
+
+        if (addedProperties == 0) {
+            this.noMorePropertiesAtCurrentUrl = true;
         }
+
+        this.activeConnections -= 1;
+        return addedProperties;
     }
 
     scanForPropertyUrls() {
+        this.getNextPropertyUrl();
         let nextDirUrl = this.getNextpropertyUrlPage();
         while ((this.activeConnections < this.maxConnections)
             && (nextDirUrl)) {
@@ -257,6 +249,49 @@ class dirParser {
         if ((this.activeConnections == 0) && (typeof nextDirUrl == 'undefined')) {
             this.dirScanFinishedCallback();
         }
+    }
+
+    getPropertyCountFromDom(dom) {
+        const spanSelector = 'span.otm-ResultCount span';
+        const counterTextElement = dom.window.document.querySelector(spanSelector);
+        const counter = parseInt(counterTextElement.textContent.replace(/\D/g, ''));
+        const plusPos = counterTextElement.textContent.indexOf("+")
+        let tooMany = true;
+        if (plusPos < 0) {
+            tooMany = false;
+        }
+
+        return { counter, tooMany };
+    }
+
+    getChildDirUrlsFromDom(dom) {
+        const childDirUrls = {};
+        const anchorSelector = 'div.within li.otm-ListItemOtmBullet a';
+        const anchors = Array.from(dom.window.document.querySelectorAll(anchorSelector));
+
+        anchors.forEach(anchor => {
+            const href = anchor.attributes.href.textContent.replace(/^\/|\/$/g, '');//trim any first or last slashes
+            childDirUrls[href] = href;
+        });
+
+        return childDirUrls;
+    }
+
+    async getChildDirs(dirUrl) {
+        this.activeConnections += 1;
+        const dom = await domUtils.getDomFromUrl(dirUrl);
+        const { counter, tooMany } = this.getPropertyCountFromDom(dom);
+        if (tooMany) {
+            //if too many properties listed for this area (typically says +1000)
+            //we find all the subareasand store them for scanning in the dirUrls array
+            const childDirUrls = this.getChildDirUrlsFromDom(dom);
+            Object.keys(childDirUrls).foreach(url => { this.dirUrls.push(url) })
+        }
+        else {
+            this.propertyUrls.push(dirUrl);
+        }
+        this.activeConnections -= 1;
+        this.scanForSubDirUrls();
     }
 
     scanForSubDirUrls() {
@@ -270,24 +305,6 @@ class dirParser {
             this.scanForPropertyUrls();
         }
     }
-
-    async getChildDirs(dirUrl) {
-        this.activeConnections += 1;
-        const dom = await domUtils.getDomFromUrl(dirUrl);
-        const { counter, tooMany } = getPropertyCountFromDom(dom);
-        if (tooMany) {
-            //if too many properties listed for this area (typically says +1000)
-            //we find all the subareasand store them for scanning in the dirUrls array
-            const childDirUrls = this.getChildDirUrlsFromDom(dom);
-            childDirUrls.foreach(url => { this.dirUrls.push(url) })
-        }
-        else {
-            this.propertyUrls.push(dirUrl);
-        }
-        this.activeConnections -= 1;
-        this.scanForSubDirUrls();
-    }
-
 }
 
 class SiteScraperClass extends ScraperBaseClass {
