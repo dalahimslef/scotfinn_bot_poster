@@ -180,26 +180,69 @@ function testPromise() {
 class dirParser {
     maxConnections = 5;
     activeConnections = 0;
-    currentPropertyUrl = undefined;
+    currentPropertyAreaUrl = undefined;
     propertyPageNumber = 0;
     noMorePropertiesAtCurrentUrl = false;
-    dirUrls = [];
-    propertyUrls = [];
+    dirUrls = {};
+    propertyAreaUrls = {};
+    propertyUrls = {};
 
-    getNextPropertyUrl() {
-        this.currentPropertyUrl = this.propertyUrls.pop();
-        this.propertyPageNumber = 0;
-
-        if (!this.currentPropertyUrl) {
-            dirScanFinishedCallback();
+    getNextDirUrl() {
+        const allUrls = Object.keys(this.dirUrls);
+        let nextUrl = undefined;
+        if (allUrls[0]) {
+            nextUrl = allUrls[0];
+            delete (this.dirUrls[nextUrl]);
         }
+        return nextUrl;
     }
 
-    getNextpropertyUrlPage() {
-        let nextDirUrl = this.currentPropertyUrl;
-        nextDirUrl = nextDirUrl + '?page=' + this.propertyPageNumber;
-        this.propertyPageNumber += 1;
-        return nextDirUrl;
+    getNextPropertyAreaUrl() {
+        const allUrls = Object.keys(this.propertyAreaUrls);
+        let nextUrl = undefined;
+        if (allUrls[0]) {
+            nextUrl = allUrls[0];
+            delete (this.propertyAreaUrls[nextUrl]);
+        }
+
+        return nextUrl;
+    }
+
+    getNextPropertyAreaUrlPage() {
+        /*
+         Since each propertyArea can have multiple pages and we scan each page in 
+         separate threads we scan separate eareas in each thread to avoid possible
+         attempting to connect to several nonexisten pages at one time since we do
+         not know how many pages in each area until we get to an empty page
+        */
+
+        Object.keys(this.propertyAreaUrlPage).forEach(url => {
+            if (this.propertyAreaUrlPage[url].allScanned) {
+                delete (this.propertyAreaUrlPage[url]);
+            }
+        });
+
+        let urlToScan = undefined;
+        let pageToScan = undefined;
+        Object.keys(this.propertyAreaUrlPage).forEach(url => {
+            if (!this.propertyAreaUrlPage[url].beingScanned) {
+                urlToScan = url;
+                this.propertyAreaUrlPage[urlToScan].panenumber += 1;
+            }
+        });
+
+        if (typeof urlToScan == 'undefined') {
+            urlToScan = getNextPropertyAreaUrl();
+            if (typeof urlToScan != 'undefined') {
+                this.propertyAreaUrlPage[urlToScan] = { beingScanned: false, panenumber: 0, allScanned: false };
+            }
+        }
+
+        this.propertyAreaUrlPage[urlToScan].beingScanned = true;
+
+        pageToScan = this.propertyAreaUrlPage[urlToScan].panenumber;
+
+        return { url: urlToScan, extension: '?page=' + returnPage };
     }
 
     getPropertyUrlsFromDom(dom) {
@@ -217,36 +260,50 @@ class dirParser {
         return propertyUrls;
     }
 
-    async getPropertyUrls(propertiesPageUrl) {
+    async getPropertyUrlsFromPropertyAreaPage(urlInfo) {
         this.activeConnections += 1;
+
+        const propertiesPageUrl = urlInfo.url + '?page=' + urlInfo.extension;
+
         const dom = await domUtils.getDomFromUrl(propertiesPageUrl);
         let addedProperties = 0;
 
         if (dom) {
             const propertyUrls = this.getPropertyUrlsFromDom(dom);
             Object.keys(propertyUrls).foreach(url => {
-                this.propertyUrls.push(url);
+                this.propertyUrls[url] = url;
                 addedProperties += 1;
             })
         }
 
         if (addedProperties == 0) {
-            this.noMorePropertiesAtCurrentUrl = true;
+            this.propertyAreaUrlPage[urlInfo.url].allScanned = true;
         }
 
         this.activeConnections -= 1;
-        return addedProperties;
+        this.scanForPropertyUrls();
     }
 
     scanForPropertyUrls() {
-        this.getNextPropertyUrl();
-        let nextDirUrl = this.getNextpropertyUrlPage();
+        /*
+        We start here when all this.dirUrls have been scanned.
+        We now have all propertyAreaUrls with a count of properties for each area in
+        this.propertyAreaUrls.
+        Each of the urls in this.propertyAreaUrls might have multiple pages with properties.
+        We now have to scann all the pages and save the properties in this.propertyUrls
+        */
+
+        let nextDirUrl = { url: undefined, extension: undefined };
         while ((this.activeConnections < this.maxConnections)
-            && (nextDirUrl)) {
-            this.getPropertyUrls(nextDirUrl);
-            nextDirUrl = this.getNextpropertyUrlPage();
+            && (typeof nextDirUrl.url != 'undefined')) {
+            //scan the page for propertyUrls and store them in 
+            // this.propertyUrls in a separate 'thread'
+            nextDirUrl = this.getNextPropertyAreaUrlPage();
+            if (typeof nextDirUrl.url != 'undefined') {
+                this.getPropertyUrlsFromPropertyAreaPage(nextDirUrl);
+            }
         }
-        if ((this.activeConnections == 0) && (typeof nextDirUrl == 'undefined')) {
+        if ((this.activeConnections == 0) && (typeof nextDirUrl.url == 'undefined')) {
             this.dirScanFinishedCallback();
         }
     }
@@ -285,21 +342,21 @@ class dirParser {
             //if too many properties listed for this area (typically says +1000)
             //we find all the subareasand store them for scanning in the dirUrls array
             const childDirUrls = this.getChildDirUrlsFromDom(dom);
-            Object.keys(childDirUrls).foreach(url => { this.dirUrls.push(url) })
+            Object.keys(childDirUrls).foreach(url => { this.dirUrls[url] = url })
         }
         else {
-            this.propertyUrls.push(dirUrl);
+            this.propertyAreaUrls[dirUrl] = counter;
         }
         this.activeConnections -= 1;
         this.scanForSubDirUrls();
     }
 
     scanForSubDirUrls() {
-        let nextDirUrl = this.dirUrls.pop();
+        let nextDirUrl = this.getNextDirUrl();
         while ((this.activeConnections < this.maxConnections)
             && (nextDirUrl)) {
             this.getChildDirs(nextDirUrl);
-            nextDirUrl = this.dirUrls.pop();
+            nextDirUrl = this.getNextDirUrl();
         }
         if ((this.activeConnections == 0) && (typeof nextDirUrl == 'undefined')) {
             this.scanForPropertyUrls();
@@ -330,7 +387,8 @@ class SiteScraperClass extends ScraperBaseClass {
         */
 
         this.dirParser = new dirParser(this.siteBaseUrl, this.initialPage, this.messageLogger, this.errorLogger, 0);
-        this.dirParser.dirUrls.push(this.siteBaseUrl + this.initialPage);
+        const initialUrl = this.siteBaseUrl + this.initialPage;
+        this.dirParser.dirUrls[initialUrl] = initialUrl;
         this.dirParser.scanForSubDirUrls();
         //testPromise();
         await awaitCompletion();
