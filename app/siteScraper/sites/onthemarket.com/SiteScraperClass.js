@@ -3,156 +3,6 @@ const ScraperBaseClass = require('../../ScraperBaseClass.js');
 const domUtils = require('../../../utils/domUtils.js');
 const vm = require('vm');
 
-/*
-class SiteDirectory {
-    siteBaseUrl = undefined;
-    path = undefined;
-    url = undefined;
-    dom = undefined;
-    parentDir = undefined;
-    propertyCount = undefined;
-    subdirsRequired = undefined;
-    propertyCountLimit = 1000;
-    childDirectories = [];
-    childPropertyUrls = [];
-    childDirUrls = undefined;
-    messageLogger = undefined;
-    depth = undefined;
-
-    constructor(siteBaseUrl, path, messageLogger, errorLogger, depth) {
-        this.errorLogger = errorLogger;
-        this.messageLogger = messageLogger;
-        this.siteBaseUrl = siteBaseUrl;
-        this.path = path;
-        this.url = siteBaseUrl + path;
-        this.depth = depth;
-    }
-
-
-
-
-    getPropertyCountFromDom() {
-        const spanSelector = 'span.otm-ResultCount span';
-        const counterTextElement = this.dom.window.document.querySelector(spanSelector);
-        const counter = parseInt(counterTextElement.textContent.replace(/\D/g, ''));
-        const plusPos = counterTextElement.textContent.indexOf("+")
-        let tooMany = true;
-        if (plusPos < 0) {
-            tooMany = false;
-        }
-
-        return { counter, tooMany };
-    }
-
-    async initialize() {
-        this.printDebugText('SiteDirectory.initialize:' + this.path)
-        this.dom = await domUtils.getDomFromUrl(this.url);
-        if (this.dom) {
-            this.messageLogger.logMessage('DOM loaded: ' + this.url);
-            let countFromDom = this.getPropertyCountFromDom();
-            this.propertyCount = countFromDom.counter;
-            this.subdirsRequired = countFromDom.tooMany;
-            if (this.subdirsRequired) {
-                this.childDirectories = await this.getChildDirectoriesFromDom();
-            }
-            else {
-                this.childPropertyUrls = await this.getDirectChildPropertyUrlsFromDom();
-                this.printDebugText('properties:' + this.propertyCount);
-            }
-        }
-        this.printDebugText('SiteDirectory.initialize done:' + this.path)
-    }
-
-    printDebugText(debugText) {
-        let text = '';
-        for (let i = 0; i < this.depth; i += 1) {
-            text = text + '    ';
-        }
-        text = text + debugText;
-        console.log(text);
-    }
-
-    async getDirectChildPropertyUrlsFromDom() {
-        const allPropertyUrls = {};
-        let propertyUrls = this.getPropertyUrlsFromDom(this.dom);
-        let morePropertiesAdded = false;
-        Object.keys(propertyUrls).forEach(key => {
-            if (!allPropertyUrls[key]) {
-                allPropertyUrls[key] = propertyUrls[key];
-                morePropertiesAdded = true;
-            }
-        });
-        //propertyUrls.forEach(propertyUrl => { allPropertyUrls.push(propertyUrl) });
-        let propertyPageIndex = 1;
-
-        while (morePropertiesAdded) {
-            let nextPropertyPageDom = await domUtils.getDomFromUrl(this.url + '/?page=' + propertyPageIndex);
-            propertyUrls = this.getPropertyUrlsFromDom(nextPropertyPageDom);
-            morePropertiesAdded = false;
-            Object.keys(propertyUrls).forEach(key => {
-                if (!allPropertyUrls[key]) {
-                    allPropertyUrls[key] = propertyUrls[key];
-                    morePropertiesAdded = true;
-                }
-            });
-            propertyPageIndex += 1;
-        }
-        return allPropertyUrls;
-    }
-
-    getPropertyUrlsFromDom(dom) {
-        const propertyUrls = {};
-        const anchorSelector = 'li.otm-PropertyCard a';
-        const anchors = Array.from(dom.window.document.querySelectorAll(anchorSelector));
-
-        anchors.forEach(anchor => {
-            const href = anchor.attributes.href.textContent.replace(/^\/|\/$/g, '');//trim any first or last slashes
-            if (href.substring(0, 8) == 'details/') {
-                propertyUrls[href] = href;
-            }
-        });
-
-        return propertyUrls;
-    }
-
-    getChildDirUrlsFromDom(dom) {
-        const childDirUrls = {};
-        const anchorSelector = 'div.within li.otm-ListItemOtmBullet a';
-        const anchors = Array.from(dom.window.document.querySelectorAll(anchorSelector));
-
-        anchors.forEach(anchor => {
-            const href = anchor.attributes.href.textContent.replace(/^\/|\/$/g, '');//trim any first or last slashes
-            childDirUrls[href] = href;
-        });
-
-        return childDirUrls;
-    }
-
-    async getChildDirectoriesFromDom() {
-        const childDirs = [];
-        const childDirUrls = this.getChildDirUrlsFromDom(this.dom);
-        for (const childDirUrl of Object.keys(childDirUrls)) {
-            const childDir = new SiteDirectory(this.siteBaseUrl, childDirUrl, this.messageLogger, this.errorLogger, this.depth + 1);
-            await childDir.initialize();
-            childDir.parentDir = this;
-            childDirs.push(childDir);
-        }
-        return childDirs;
-    }
-
-    getAllChildPropertyUrls() {
-        let allChildPropertyUrls = [];
-        Object.keys(this.childPropertyUrls).forEach(key => {
-            allChildPropertyUrls.push(this.childPropertyUrls[key]);
-        })
-        this.childDirectories.forEach(childDirectory => {
-            allChildPropertyUrls = allChildPropertyUrls.concat(childDirectory.getAllChildPropertyUrls());
-        })
-        return allChildPropertyUrls;
-    }
-}
-*/
-
 let scanCompeted = false;
 let completedResolve = function () { };
 
@@ -178,13 +28,18 @@ function testPromise() {
 }
 
 class dirParser {
+    siteBaseUrl = 'https://www.onthemarket.com/';
     maxConnections = 5;
     activeConnections = 0;
+    scannedDirCount = 0;
+    propertyAreaCount = 0;
+    scannedPropertiesCount = 0;
     currentPropertyAreaUrl = undefined;
     propertyPageNumber = 0;
     noMorePropertiesAtCurrentUrl = false;
     dirUrls = {};
     propertyAreaUrls = {};
+    propertyAreaUrlPage = {};
     propertyUrls = {};
 
     getNextDirUrl() {
@@ -232,17 +87,19 @@ class dirParser {
         });
 
         if (typeof urlToScan == 'undefined') {
-            urlToScan = getNextPropertyAreaUrl();
+            urlToScan = this.getNextPropertyAreaUrl();
             if (typeof urlToScan != 'undefined') {
                 this.propertyAreaUrlPage[urlToScan] = { beingScanned: false, panenumber: 0, allScanned: false };
             }
         }
 
-        this.propertyAreaUrlPage[urlToScan].beingScanned = true;
+        if (typeof urlToScan != 'undefined') {
+            this.propertyAreaUrlPage[urlToScan].beingScanned = true;
+            pageToScan = this.propertyAreaUrlPage[urlToScan].panenumber;
+        }
 
-        pageToScan = this.propertyAreaUrlPage[urlToScan].panenumber;
-
-        return { url: urlToScan, extension: '?page=' + returnPage };
+        const returnObject = { url: urlToScan, extension: '?page=' + pageToScan };
+        return returnObject;
     }
 
     getPropertyUrlsFromDom(dom) {
@@ -261,7 +118,7 @@ class dirParser {
     }
 
     async getPropertyUrlsFromPropertyAreaPage(urlInfo) {
-        this.activeConnections += 1;
+
 
         const propertiesPageUrl = urlInfo.url + '?page=' + urlInfo.extension;
 
@@ -270,7 +127,7 @@ class dirParser {
 
         if (dom) {
             const propertyUrls = this.getPropertyUrlsFromDom(dom);
-            Object.keys(propertyUrls).foreach(url => {
+            Object.keys(propertyUrls).forEach(url => {
                 this.propertyUrls[url] = url;
                 addedProperties += 1;
             })
@@ -280,6 +137,7 @@ class dirParser {
             this.propertyAreaUrlPage[urlInfo.url].allScanned = true;
         }
 
+        this.scannedPropertiesCount += 1;
         this.activeConnections -= 1;
         this.scanForPropertyUrls();
     }
@@ -292,18 +150,22 @@ class dirParser {
         Each of the urls in this.propertyAreaUrls might have multiple pages with properties.
         We now have to scann all the pages and save the properties in this.propertyUrls
         */
-
-        let nextDirUrl = { url: undefined, extension: undefined };
-        while ((this.activeConnections < this.maxConnections)
-            && (typeof nextDirUrl.url != 'undefined')) {
+        let urlFound = true;
+        while ((this.scannedPropertiesCount <= 10) && (this.activeConnections < this.maxConnections) && (urlFound)) {
             //scan the page for propertyUrls and store them in 
             // this.propertyUrls in a separate 'thread'
-            nextDirUrl = this.getNextPropertyAreaUrlPage();
+            let nextDirUrl = this.getNextPropertyAreaUrlPage();
             if (typeof nextDirUrl.url != 'undefined') {
+                this.activeConnections += 1;
                 this.getPropertyUrlsFromPropertyAreaPage(nextDirUrl);
             }
+            else {
+                urlFound = false;
+            }
         }
-        if ((this.activeConnections == 0) && (typeof nextDirUrl.url == 'undefined')) {
+        //if ((this.activeConnections == 0) && (!urlFound)) {
+        //FOR DEBUGGING
+        if (this.scannedPropertiesCount > 10) {
             this.dirScanFinishedCallback();
         }
     }
@@ -335,30 +197,38 @@ class dirParser {
     }
 
     async getChildDirs(dirUrl) {
-        this.activeConnections += 1;
         const dom = await domUtils.getDomFromUrl(dirUrl);
         const { counter, tooMany } = this.getPropertyCountFromDom(dom);
         if (tooMany) {
             //if too many properties listed for this area (typically says +1000)
             //we find all the subareasand store them for scanning in the dirUrls array
             const childDirUrls = this.getChildDirUrlsFromDom(dom);
-            Object.keys(childDirUrls).foreach(url => { this.dirUrls[url] = url })
+            Object.keys(childDirUrls).forEach(url => { this.dirUrls[this.siteBaseUrl + url] = this.siteBaseUrl + url })
         }
         else {
             this.propertyAreaUrls[dirUrl] = counter;
+            this.propertyAreaCount += 1;
         }
+        this.scannedDirCount += 1;
         this.activeConnections -= 1;
         this.scanForSubDirUrls();
     }
 
     scanForSubDirUrls() {
-        let nextDirUrl = this.getNextDirUrl();
-        while ((this.activeConnections < this.maxConnections)
-            && (nextDirUrl)) {
-            this.getChildDirs(nextDirUrl);
-            nextDirUrl = this.getNextDirUrl();
+        let urlFound = true;
+        while ((this.propertyAreaCount <= 5) && (this.activeConnections < this.maxConnections) && urlFound) {
+            let nextDirUrl = this.getNextDirUrl();
+            if (typeof nextDirUrl != 'undefined') {
+                this.activeConnections += 1;
+                this.getChildDirs(nextDirUrl);
+            }
+            else {
+                urlFound = false;
+            }
         }
-        if ((this.activeConnections == 0) && (typeof nextDirUrl == 'undefined')) {
+        //if ((this.activeConnections == 0) && (!urlFound)) {
+        //FOR DEBUGGING
+        if (this.propertyAreaCount > 5) {
             this.scanForPropertyUrls();
         }
     }
@@ -387,6 +257,7 @@ class SiteScraperClass extends ScraperBaseClass {
         */
 
         this.dirParser = new dirParser(this.siteBaseUrl, this.initialPage, this.messageLogger, this.errorLogger, 0);
+        this.dirParser.siteBaseUrl = this.siteBaseUrl;
         const initialUrl = this.siteBaseUrl + this.initialPage;
         this.dirParser.dirUrls[initialUrl] = initialUrl;
         this.dirParser.scanForSubDirUrls();
