@@ -29,6 +29,9 @@ function testPromise() {
 
 class dirParser {
     siteBaseUrl = 'https://www.onthemarket.com/';
+    initialPage = undefined;
+    messageLogger = undefined;
+    errorLogger = undefined;
     maxConnections = 5;
     activeConnections = 0;
     scannedDirCount = 0;
@@ -41,6 +44,18 @@ class dirParser {
     propertyAreaUrls = {};
     propertyAreaUrlPage = {};
     propertyUrls = {};
+    inspectionQues = {};
+    inspectionErrors = [];
+
+    constructor(siteBaseUrl, initialPage, messageLogger, errorLogger) {
+        this.siteBaseUrl = siteBaseUrl;
+        this.initialPage = initialPage;
+        this.errorLogger = errorLogger;
+        this.messageLogger = messageLogger;
+
+        const initialUrl = this.siteBaseUrl + this.initialPage;
+        this.dirUrls[initialUrl] = initialUrl;
+    }
 
     getNextDirUrl() {
         const allUrls = Object.keys(this.dirUrls);
@@ -61,6 +76,51 @@ class dirParser {
         }
 
         return nextUrl;
+    }
+
+    printInspectionInfo() {
+        //console.clear();
+        console.log("\n\n");
+        Object.keys(this.inspectionQues).forEach(ndx => {
+            console.log(ndx);
+            Object.keys(this.inspectionQues[ndx]).forEach(url => {
+                console.log('   ' + url);
+            });
+        });
+
+        this.inspectionErrors.forEach(error => { console.log(error); });
+
+        console.log('Loaded property urls:');
+        Object.keys(this.propertyUrls).forEach(url => {
+            console.log('   ' + url);
+        });
+    }
+
+    updateConnectionInspection(direction, ndx, url) {
+        if (typeof this.inspectionQues[ndx] == 'undefined') {
+            this.inspectionQues[ndx] = {};
+        }
+
+        if (direction == 'in') {
+            if (typeof this.inspectionQues[ndx][url] == 'undefined') {
+                this.inspectionQues[ndx][url] = 1;
+            }
+            else {
+                this.inspectionQues[ndx][url] += 1;
+            }
+        }
+        else {
+            if (typeof this.inspectionQues[ndx][url] == 'undefined') {
+                this.inspectionErrors.push(url + ' not found in inspectionQues ' + ndx);
+            }
+            else {
+                this.inspectionQues[ndx][url] -= 1;
+                if (this.inspectionQues[ndx][url] < 1) {
+                    delete (this.inspectionQues[ndx][url]);
+                }
+            }
+        }
+        this.printInspectionInfo();
     }
 
     getNextPropertyAreaUrlPage() {
@@ -120,16 +180,25 @@ class dirParser {
     async getPropertyUrlsFromPropertyAreaPage(urlInfo) {
 
 
-        const propertiesPageUrl = urlInfo.url + '?page=' + urlInfo.extension;
+        const propertiesPageUrl = urlInfo.url + urlInfo.extension;
 
-        const dom = await domUtils.getDomFromUrl(propertiesPageUrl);
+        this.updateConnectionInspection('in', 2, propertiesPageUrl);
+
+        const dom = await domUtils.getDomFromUrl(propertiesPageUrl, this.messageLogger, this.errorLogger);
         let addedProperties = 0;
 
         if (dom) {
             const propertyUrls = this.getPropertyUrlsFromDom(dom);
             Object.keys(propertyUrls).forEach(url => {
-                this.propertyUrls[url] = url;
+                let fixedUrl = url;
+                if(fixedUrl.substring(0,4) != 'http'){
+                    fixedUrl = this.siteBaseUrl + url;
+                }
+                this.propertyUrls[fixedUrl] = fixedUrl;
+
+                //this.siteBaseUrl
                 addedProperties += 1;
+                this.scannedPropertiesCount += 1;
             })
         }
 
@@ -137,8 +206,9 @@ class dirParser {
             this.propertyAreaUrlPage[urlInfo.url].allScanned = true;
         }
 
-        this.scannedPropertiesCount += 1;
         this.activeConnections -= 1;
+
+        this.updateConnectionInspection('out', 2, propertiesPageUrl);
         this.scanForPropertyUrls();
     }
 
@@ -166,7 +236,7 @@ class dirParser {
         //if ((this.activeConnections == 0) && (!urlFound)) {
         //FOR DEBUGGING
         if (this.scannedPropertiesCount > 10) {
-            this.dirScanFinishedCallback();
+            dirScanFinishedCallback();
         }
     }
 
@@ -197,7 +267,8 @@ class dirParser {
     }
 
     async getChildDirs(dirUrl) {
-        const dom = await domUtils.getDomFromUrl(dirUrl);
+        this.updateConnectionInspection('in', 1, dirUrl);
+        const dom = await domUtils.getDomFromUrl(dirUrl, this.messageLogger, this.errorLogger);
         const { counter, tooMany } = this.getPropertyCountFromDom(dom);
         if (tooMany) {
             //if too many properties listed for this area (typically says +1000)
@@ -211,6 +282,7 @@ class dirParser {
         }
         this.scannedDirCount += 1;
         this.activeConnections -= 1;
+        this.updateConnectionInspection('out', 1, dirUrl);
         this.scanForSubDirUrls();
     }
 
@@ -232,6 +304,14 @@ class dirParser {
             this.scanForPropertyUrls();
         }
     }
+
+    getPropertyUrls() {
+        const returnArray = [];
+        Object.keys(this.propertyUrls).forEach(url => {
+            returnArray.push(url);
+        });
+        return returnArray;
+    }
 }
 
 class SiteScraperClass extends ScraperBaseClass {
@@ -249,17 +329,7 @@ class SiteScraperClass extends ScraperBaseClass {
     }
 
     async initialize() {
-        /*
-        console.log('SiteScraperClass.initialize:' + this.initialPage)
-        this.siteParser = new SiteDirectory(this.siteBaseUrl, this.initialPage, this.messageLogger, this.errorLogger, 0);
-        await this.siteParser.initialize();
-        console.log('SiteScraperClass.initialize done:' + this.initialPage)
-        */
-
         this.dirParser = new dirParser(this.siteBaseUrl, this.initialPage, this.messageLogger, this.errorLogger, 0);
-        this.dirParser.siteBaseUrl = this.siteBaseUrl;
-        const initialUrl = this.siteBaseUrl + this.initialPage;
-        this.dirParser.dirUrls[initialUrl] = initialUrl;
         this.dirParser.scanForSubDirUrls();
         //testPromise();
         await awaitCompletion();
@@ -292,7 +362,7 @@ class SiteScraperClass extends ScraperBaseClass {
 
     getPropertyUrls() {
         //The actual return:
-        return this.siteParser.getAllChildPropertyUrls();
+        return this.dirParser.getPropertyUrls();
 
         //FOR DEBUGGING
         /*

@@ -121,7 +121,7 @@ class ScraperBaseClass {
   }
 
   async getPropertyInfoFromUrl(propertyUrl) {
-    const propertyDom = await domUtils.getDomFromUrl(propertyUrl);
+    const propertyDom = await domUtils.getDomFromUrl(propertyUrl, this.messageLogger, this.errorLogger);
     if (propertyDom) {
       this.initializePropertyDom(propertyDom);
 
