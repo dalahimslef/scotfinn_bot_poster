@@ -55,7 +55,7 @@ exports.postProperties = async (messageLogger, errorLogger) => {
 
 postPropertiesInBatches = async (propertyInfo, invalidUrls, messageLogger, errorLogger, scrapeStart, scrapeEnd) => {
     //To avoid the chance of posting too much data at once, we split the post up in batches
-    const batchSize = 50;
+    const batchSize = 10;
 
     let ndx = 0;
     messageLogger.logMessage('Posting properties in batches');
