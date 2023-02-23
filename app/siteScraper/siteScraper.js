@@ -1,6 +1,6 @@
 const fs = require('fs')
 const api = require('../api/api.js');
-const objectSaver = require('../utils/objectSaver.js');
+//const objectSaver = require('../utils/objectSaver.js');
 
 
 
@@ -81,17 +81,20 @@ postPropertiesInBatches = async (propertyInfo, invalidUrls, messageLogger, error
 
 scrapeSite = async (elementPath, messageLogger, errorLogger) => {
     try {
-        objectSaver.saveObjectToFile(undefined, "C:\\Users\\dalah\\Programming\\node-programs\\scotfinn\\bot_poster\\app\\utils\\testwrite.txt");
-        /*
         const SiteScraper = require(elementPath + '/SiteScraperClass.js');
         const scraper = new SiteScraper(messageLogger, errorLogger);
         console.log('scraper.initialize')
         const scrapeStart = Date.now();
         //disable FOR DEBUGGING
-        await scraper.initialize();
-        const { propertyInfo, invalidUrls, propertiyUrlsToDelete } = await scraper.getPropertyInfo();
+
+        //await scraper.initialize();
+        //const { propertyInfo, invalidUrls, propertiyUrlsToDelete } = await scraper.getPropertyInfo();
+        const { propertyInfo, invalidUrls, propertiyUrlsToDelete } = await scraper._debug_getPropertyInfo();
         const scrapeEnd = Date.now();
+
+        //objectSaver.saveObjectToFile(propertyInfo, "C:\\Users\\dalah\\Programming\\node-programs\\scotfinn\\bot_poster\\app\\utils\\propertyInfo.txt");
         //disable FOR DEBUGGING
+        
         await postPropertiesInBatches(propertyInfo, invalidUrls, messageLogger, errorLogger, scrapeStart, scrapeEnd);
         //console.log(propertyInfo)
         await api.deleteProperties(propertiyUrlsToDelete, scraper.siteName);
@@ -101,7 +104,6 @@ scrapeSite = async (elementPath, messageLogger, errorLogger) => {
         messages = errorLogger.getErrors();
         messages.forEach(msg => { allMessages.push({ message: msg, type: 'error' }); });
         await api.postBotMessages(allMessages);
-        */
     }
     catch (error) {
         throw error;

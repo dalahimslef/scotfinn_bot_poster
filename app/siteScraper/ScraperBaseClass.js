@@ -206,6 +206,35 @@ class ScraperBaseClass {
     })
     return { propertyInfo, invalidUrls, propertiyUrlsToDelete };
   }
+
+  async _debug_getPropertyInfo() {
+    const debug_properties = require('../utils/propertyInfo.js');
+
+    const propertyInfo = [];
+    const invalidUrls = [];
+    const propertiyUrlsToDelete = [];
+    const existingPropertyUrls = await this.getExistingProperties();
+    const nonexistentProperties = {};
+
+    Object.keys(existingPropertyUrls).forEach(url => {
+      nonexistentProperties[url] = url;
+    })
+
+    debug_properties.forEach(prop => {
+      let propertyUrl = prop.property_url;
+      if (nonexistentProperties[propertyUrl]) {
+        delete nonexistentProperties[propertyUrl];
+      }
+      if (!existingPropertyUrls[propertyUrl]) {
+        propertyInfo.push(prop);
+      }
+
+    });
+    Object.keys(nonexistentProperties).forEach(url => {
+      propertiyUrlsToDelete.push(url);
+    })
+    return { propertyInfo, invalidUrls, propertiyUrlsToDelete };
+  }
 }
 
 
