@@ -156,6 +156,7 @@ class ScraperBaseClass {
         country: this.getGeCountryFromDom(propertyDom),
         agent: this.getAgentFromDom(propertyDom),
         property_url: propertyUrl,
+        site_name: this.siteName,
       }
       console.log(returnObject);
       return returnObject;

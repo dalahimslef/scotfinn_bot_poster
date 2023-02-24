@@ -955,6 +955,24 @@ const getSitePropertyUrls = async (siteName) => {
     return postedUrls;
 }
 
+const getPropertySites = async () => {
+    const config = {
+        method: 'get',
+        baseURL: baseUrl,
+        url: '/api/property_site',
+        params: {
+        }
+    }
+    const response = await getAxiosResponse(config);
+
+    let sites = [];
+    if (response.data) {
+        sites = response.data;
+    }
+
+    return sites;
+}
+
 const getBotStatus = async (params) => {
     const config = {
         method: 'get',
@@ -1093,4 +1111,5 @@ exports.getSitePropertyUrls = getSitePropertyUrls;
 exports.deleteProperties = deleteProperties;
 exports.postBotMessages = postBotMessages;
 exports.deleteBotMessages = deleteBotMessages;
+exports.getPropertySites = getPropertySites;
 
