@@ -436,6 +436,60 @@ module.exports =[
 		"site_name": "www.onthemarket.com"
 	},
 	{
+		"property_type": "land",
+		"sale_type": "",
+		"price": 90000,
+		"house_sqm": -1,
+		"land_sqm": -1,
+		"bedroom_count": 0,
+		"construction_year": -1,
+		"image_urls": [
+			{
+				"large": "https://media.onthemarket.com/properties/2555524/1397503249/image-0-1024x1024.jpg",
+				"preview": "https://media.onthemarket.com/properties/2555524/1397503249/image-0-81x55.jpg"
+			},
+			{
+				"large": "https://media.onthemarket.com/properties/2555524/1397503249/image-1-1024x1024.jpg",
+				"preview": "https://media.onthemarket.com/properties/2555524/1397503249/image-1-81x55.jpg"
+			},
+			{
+				"large": "https://media.onthemarket.com/properties/2555524/1397503249/image-2-1024x1024.jpg",
+				"preview": "https://media.onthemarket.com/properties/2555524/1397503249/image-2-81x55.jpg"
+			},
+			{
+				"large": "https://media.onthemarket.com/properties/2555524/1397503249/image-3-1024x1024.jpg",
+				"preview": "https://media.onthemarket.com/properties/2555524/1397503249/image-3-81x55.jpg"
+			},
+			{
+				"large": "https://media.onthemarket.com/properties/2555524/1397503249/image-4-1024x1024.jpg",
+				"preview": "https://media.onthemarket.com/properties/2555524/1397503249/image-4-81x55.jpg"
+			},
+			{
+				"large": "https://media.onthemarket.com/properties/2555524/1397503249/image-5-1024x1024.jpg",
+				"preview": "https://media.onthemarket.com/properties/2555524/1397503249/image-5-81x55.jpg"
+			},
+			{
+				"large": "https://media.onthemarket.com/properties/2555524/1397503249/image-6-1024x1024.jpg",
+				"preview": "https://media.onthemarket.com/properties/2555524/1397503249/image-6-81x55.jpg"
+			}
+		],
+		"unformatted_address": "Portnahaven, Isle of Islay",
+		"google_latitude": 55.688038,
+		"google_longitude": -6.5094,
+		"formattedAdress": "",
+		"addressComponents": [],
+		"country": "",
+		"agent": {
+			"name": "Stewart Balfour & Sutherland",
+			"logo_url": "https://media.onthemarket.com/agents/companies/2392/190823145209407/logo-190x100.jpg",
+			"website": "http://www.sbsproperty.co.uk/",
+			"email": "",
+			"phone": "01586 642991"
+		},
+		"property_url": "https://www.onthemarket.com/details/2555524",
+		"site_name": "www.onthemarket.com"
+	},
+	{
 		"property_type": "house",
 		"sale_type": "",
 		"price": 294995,
@@ -2364,7 +2418,7 @@ module.exports =[
 			"email": "",
 			"phone": "01294 284612"
 		},
-		"property_url": "https://www.onthemarket.com/details/11111111",
+		"property_url": "https://www.onthemarket.com/details/11678550",
 		"site_name": "www.onthemarket.com"
 	}
 ];
