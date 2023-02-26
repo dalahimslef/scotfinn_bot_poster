@@ -1,6 +1,6 @@
 const fs = require('fs')
 const api = require('../api/api.js');
-//const objectSaver = require('../utils/objectSaver.js');
+const objectSaver = require('../utils/objectSaver.js');
 
 
 
@@ -86,13 +86,14 @@ scrapeSite = async (elementPath, messageLogger, errorLogger) => {
         console.log('scraper.initialize')
         const scrapeStart = Date.now();
         //disable FOR DEBUGGING
+        await scraper.initialize();
+        const { propertyInfo, invalidUrls, propertiyUrlsToDelete } = await scraper.getPropertyInfo();
 
-        //await scraper.initialize();
-        //const { propertyInfo, invalidUrls, propertiyUrlsToDelete } = await scraper.getPropertyInfo();
-        const { propertyInfo, invalidUrls, propertiyUrlsToDelete } = await scraper._debug_getPropertyInfo();
+        //for debugging
+        //const { propertyInfo, invalidUrls, propertiyUrlsToDelete } = await scraper._debug_getPropertyInfo();
         const scrapeEnd = Date.now();
 
-        //objectSaver.saveObjectToFile(propertyInfo, "C:\\Users\\dalah\\Programming\\node-programs\\scotfinn\\bot_poster\\app\\utils\\propertyInfo.txt");
+        objectSaver.saveObjectToFile(propertyInfo, "C:\\Users\\dalah\\Programming\\node-programs\\scotfinn\\bot_poster\\app\\utils\\propertyInfo.txt");
         //disable FOR DEBUGGING
         
         await postPropertiesInBatches(propertyInfo, invalidUrls, messageLogger, errorLogger, scrapeStart, scrapeEnd);

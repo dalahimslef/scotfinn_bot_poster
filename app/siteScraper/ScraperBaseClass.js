@@ -4,6 +4,7 @@ const jsdom = require("jsdom");
 const api = require('../api/api.js');
 const { JSDOM } = jsdom;
 const domUtils = require('../utils/domUtils.js');
+const objectSaver = require('../utils/objectSaver.js');
 
 class ScraperBaseClass {
   siteName = '';
@@ -187,6 +188,7 @@ class ScraperBaseClass {
     })
 
     const propertyUrls = await this.getPropertyUrls();
+    objectSaver.saveObjectToFile(propertyUrls, "C:\\Users\\dalah\\Programming\\node-programs\\scotfinn\\bot_poster\\app\\utils\\propertyUrls.txt");
     for (let propertyUrl of propertyUrls) {
       if (nonexistentProperties[propertyUrl]) {
         delete nonexistentProperties[propertyUrl];

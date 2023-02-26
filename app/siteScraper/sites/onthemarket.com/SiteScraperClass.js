@@ -37,6 +37,8 @@ class dirParser {
     scannedDirCount = 0;
     propertyAreaCount = 0;
     scannedPropertiesCount = 0;
+    propertyAreasScanned = 0;
+    propertyAreaPageScanned = 0;
     currentPropertyAreaUrl = undefined;
     propertyPageNumber = 0;
     noMorePropertiesAtCurrentUrl = false;
@@ -120,7 +122,8 @@ class dirParser {
                 }
             }
         }
-        this.printInspectionInfo();
+        //this.printInspectionInfo();
+        this.printInfo();
     }
 
     getNextPropertyAreaUrlPage() {
@@ -191,7 +194,7 @@ class dirParser {
             const propertyUrls = this.getPropertyUrlsFromDom(dom);
             Object.keys(propertyUrls).forEach(url => {
                 let fixedUrl = url;
-                if(fixedUrl.substring(0,4) != 'http'){
+                if (fixedUrl.substring(0, 4) != 'http') {
                     fixedUrl = this.siteBaseUrl + url;
                 }
                 this.propertyUrls[fixedUrl] = fixedUrl;
@@ -204,6 +207,10 @@ class dirParser {
 
         if (addedProperties == 0) {
             this.propertyAreaUrlPage[urlInfo.url].allScanned = true;
+            this.propertyAreasScanned += 1;
+        }
+        else {
+            this.propertyAreaPageScanned += 1;
         }
 
         this.activeConnections -= 1;
@@ -221,7 +228,8 @@ class dirParser {
         We now have to scann all the pages and save the properties in this.propertyUrls
         */
         let urlFound = true;
-        while ((this.scannedPropertiesCount <= 10) && (this.activeConnections < this.maxConnections) && (urlFound)) {
+        while ((this.activeConnections < this.maxConnections) && (urlFound)) {
+            //while ((this.scannedPropertiesCount <= 10) && (this.activeConnections < this.maxConnections) && (urlFound)) {
             //scan the page for propertyUrls and store them in 
             // this.propertyUrls in a separate 'thread'
             let nextDirUrl = this.getNextPropertyAreaUrlPage();
@@ -233,9 +241,9 @@ class dirParser {
                 urlFound = false;
             }
         }
-        //if ((this.activeConnections == 0) && (!urlFound)) {
-        //FOR DEBUGGING
-        if (this.scannedPropertiesCount > 10) {
+        if ((this.activeConnections == 0) && (!urlFound)) {
+            //FOR DEBUGGING
+            //if (this.scannedPropertiesCount > 10) {
             dirScanFinishedCallback();
         }
     }
@@ -286,9 +294,34 @@ class dirParser {
         this.scanForSubDirUrls();
     }
 
+    printInfo() {
+        console.clear();
+        let dirsInCue = 0;
+        Object.keys(this.dirUrls).forEach(dirUrl => {
+            dirsInCue += 1;
+        });
+        let propertyDirsInCue = 0;
+        Object.keys(this.propertyAreaUrls).forEach(dirUrl => {
+            propertyDirsInCue += 1;
+        });
+        let propertyUrlCount = 0;
+        Object.keys(this.propertyUrls).forEach(dirUrl => {
+            propertyUrlCount += 1;
+        });
+
+        console.log('Total dirs scanned: ' + this.scannedDirCount);
+        console.log('Dirs in cue: ' + dirsInCue)
+        console.log('Dirs scanned for properties: ' + this.propertyAreasScanned)
+        console.log('Total pages scanned for properties: ' + this.propertyAreaPageScanned)
+        console.log('Dirs with propertiesin cue: ' + propertyDirsInCue)
+        console.log('Property urls found:' + propertyUrlCount)
+    }
+
     scanForSubDirUrls() {
         let urlFound = true;
-        while ((this.propertyAreaCount <= 5) && (this.activeConnections < this.maxConnections) && urlFound) {
+        while ((this.activeConnections < this.maxConnections) && urlFound) {
+            //FOR DEBUGGING
+            //while ((this.propertyAreaCount <= 5) && (this.activeConnections < this.maxConnections) && urlFound) {
             let nextDirUrl = this.getNextDirUrl();
             if (typeof nextDirUrl != 'undefined') {
                 this.activeConnections += 1;
@@ -298,9 +331,9 @@ class dirParser {
                 urlFound = false;
             }
         }
-        //if ((this.activeConnections == 0) && (!urlFound)) {
-        //FOR DEBUGGING
-        if (this.propertyAreaCount > 5) {
+        if ((this.activeConnections == 0) && (!urlFound)) {
+            //FOR DEBUGGING
+            //if (this.propertyAreaCount > 5) {
             this.scanForPropertyUrls();
         }
     }
