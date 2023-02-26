@@ -13,7 +13,6 @@ class ScraperBaseClass {
   errorLogger = undefined;
   messageLogger = undefined;
   runScripts = false;
-  pInfoLoops = 0;
 
   constructor(messageLogger, errorLogger) {
     this.errorLogger = errorLogger;
@@ -122,7 +121,7 @@ class ScraperBaseClass {
 
   }
 
-  async getPropertyInfoFromUrl(propertyUrl, propertyInfo, invalidUrls, asyncExecutor) {
+  async getPropertyInfoFromUrl(propertyUrl) {
     const propertyDom = await domUtils.getDomFromUrl(propertyUrl, this.messageLogger, this.errorLogger);
     if (propertyDom) {
       this.initializePropertyDom(propertyDom);
@@ -161,20 +160,10 @@ class ScraperBaseClass {
         site_name: this.siteName,
       }
       console.log(returnObject);
-      propertyInfo.push(returnObject);
+      return returnObject;
     }
     else {
-      invalidUrls.push(propertyUrl);
-    }
-
-    this.pInfoLoops -= 1;
-    if (this.pInfoLoops < 0) {
-      this.pInfoLoops = 0;
-    }
-    if (typeof asyncExecutor != 'undefined') {
-      if (this.pInfoLoops < 1) {
-        asyncExecutor.dirScanFinishedCallback.bind(asyncExecutor);
-      }
+      return false;
     }
   }
 
@@ -187,46 +176,41 @@ class ScraperBaseClass {
     return existingProperties;
   }
 
-  async getPropertyInfo(propertyUrls) {
+  async getPropertyInfo() {
     const propertyInfo = [];
     const invalidUrls = [];
+    const propertiyUrlsToDelete = [];
+    const existingPropertyUrls = await this.getExistingProperties();
+    const nonexistentProperties = {};
 
-    /*
+    Object.keys(existingPropertyUrls).forEach(url => {
+      nonexistentProperties[url] = url;
+    })
+
     //const propertyUrls = await this.getPropertyUrls();
     const propertyUrls = require('../utils/propertyUrls.js');
     //objectSaver.saveObjectToFile(propertyUrls, "C:\\Users\\dalah\\Programming\\node-programs\\scotfinn\\bot_poster\\app\\utils\\propertyUrls.txt");
-    */
-
+    
+    
     for (let propertyUrl of propertyUrls) {
-      await this.getPropertyInfoFromUrl(propertyUrl, propertyInfo, invalidUrls);
-      /*
-      const info = await this.getPropertyInfoFromUrl(propertyUrl);
-      if (info) {
-        propertyInfo.push(info);
+      if (nonexistentProperties[propertyUrl]) {
+        delete nonexistentProperties[propertyUrl];
       }
-      else {
-        invalidUrls.push(propertyUrl);
+      if (!existingPropertyUrls[propertyUrl]) {
+        console.log(propertyUrl);
+        const info = await this.getPropertyInfoFromUrl(propertyUrl);
+        if (info) {
+          propertyInfo.push(info);
+        }
+        else {
+          invalidUrls.push(propertyUrl);
+        }
       }
-      */
     }
-
-    return { propertyInfo, invalidUrls };
-  }
-
-  async getPropertyInfoInParalell(propertyUrls) {
-    const propertyInfo = [];
-    const invalidUrls = [];
-
-    const ae = new AsyncExec();
-
-    this.pInfoLoops = propertyUrls.length;
-    for (let propertyUrl of propertyUrls) {
-      this.getPropertyInfoFromUrl(propertyUrl, propertyInfo, invalidUrls, ae);
-    }
-
-    await ae.awaitCompletion();
-
-    return { propertyInfo, invalidUrls };
+    Object.keys(nonexistentProperties).forEach(url => {
+      propertiyUrlsToDelete.push(url);
+    })
+    return { propertyInfo, invalidUrls, propertiyUrlsToDelete };
   }
 
   async _debug_getPropertyInfo() {

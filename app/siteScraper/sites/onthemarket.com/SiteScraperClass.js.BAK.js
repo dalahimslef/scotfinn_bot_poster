@@ -3,100 +3,166 @@ const ScraperBaseClass = require('../../ScraperBaseClass.js');
 const domUtils = require('../../../utils/domUtils.js');
 const vm = require('vm');
 
-class SiteDirectory {
-    siteBaseUrl = undefined;
-    path = undefined;
-    url = undefined;
-    dom = undefined;
-    parentDir = undefined;
-    propertyCount = undefined;
-    subdirsRequired = undefined;
-    propertyCountLimit = 1000;
-    childDirectories = [];
-    childPropertyUrls = [];
-    childDirUrls = undefined;
-    messageLogger = undefined;
-    depth = undefined;
+let scanCompeted = false;
+let completedResolve = function () { };
 
-    constructor(siteBaseUrl, path, messageLogger, errorLogger, depth) {
+function dirScanFinishedCallback() {
+    scanCompeted = true;
+    completedResolve();
+}
+
+async function awaitCompletion() {
+    if (!scanCompeted) {
+        await new Promise((resolve) => {
+            console.log('waiting...');
+            completedResolve = resolve;
+        });
+    }
+    else {
+        console.log('no waiting required');
+    }
+}
+
+function testPromise() {
+    setTimeout(dirScanFinishedCallback, 10000);
+}
+
+class dirParser {
+    siteBaseUrl = 'https://www.onthemarket.com/';
+    initialPage = undefined;
+    messageLogger = undefined;
+    errorLogger = undefined;
+    maxConnections = 5;
+    activeConnections = 0;
+    scannedDirCount = 0;
+    propertyAreaCount = 0;
+    scannedPropertiesCount = 0;
+    propertyAreasScanned = 0;
+    propertyAreaPageScanned = 0;
+    currentPropertyAreaUrl = undefined;
+    propertyPageNumber = 0;
+    noMorePropertiesAtCurrentUrl = false;
+    dirUrls = {};
+    propertyAreaUrls = {};
+    propertyAreaUrlPage = {};
+    propertyUrls = {};
+    inspectionQues = {};
+    inspectionErrors = [];
+
+    constructor(siteBaseUrl, initialPage, messageLogger, errorLogger) {
+        this.siteBaseUrl = siteBaseUrl;
+        this.initialPage = initialPage;
         this.errorLogger = errorLogger;
         this.messageLogger = messageLogger;
-        this.siteBaseUrl = siteBaseUrl;
-        this.path = path;
-        this.url = siteBaseUrl + path;
-        this.depth = depth;
+
+        const initialUrl = this.siteBaseUrl + this.initialPage;
+        this.dirUrls[initialUrl] = initialUrl;
     }
 
+    getNextDirUrl() {
+        const allUrls = Object.keys(this.dirUrls);
+        let nextUrl = undefined;
+        if (allUrls[0]) {
+            nextUrl = allUrls[0];
+            delete (this.dirUrls[nextUrl]);
+        }
+        return nextUrl;
+    }
 
-
-
-    getPropertyCountFromDom() {
-        const spanSelector = 'span.otm-ResultCount span';
-        const counterTextElement = this.dom.window.document.querySelector(spanSelector);
-        const counter = parseInt(counterTextElement.textContent.replace(/\D/g, ''));
-        const plusPos = counterTextElement.textContent.indexOf("+")
-        let tooMany = true;
-        if (plusPos < 0) {
-            tooMany = false;
+    getNextPropertyAreaUrl() {
+        const allUrls = Object.keys(this.propertyAreaUrls);
+        let nextUrl = undefined;
+        if (allUrls[0]) {
+            nextUrl = allUrls[0];
+            delete (this.propertyAreaUrls[nextUrl]);
         }
 
-        return { counter, tooMany };
+        return nextUrl;
     }
 
-    async initialize() {
-        this.printDebugText('SiteDirectory.initialize:' + this.path)
-        this.dom = await domUtils.getDomFromUrl(this.url);
-        if (this.dom) {
-            this.messageLogger.logMessage('DOM loaded: ' + this.url);
-            let countFromDom = this.getPropertyCountFromDom();
-            this.propertyCount = countFromDom.counter;
-            this.subdirsRequired = countFromDom.tooMany;
-            if (this.subdirsRequired) {
-                this.childDirectories = await this.getChildDirectoriesFromDom();
+    printInspectionInfo() {
+        //console.clear();
+        console.log("\n\n");
+        Object.keys(this.inspectionQues).forEach(ndx => {
+            console.log(ndx);
+            Object.keys(this.inspectionQues[ndx]).forEach(url => {
+                console.log('   ' + url);
+            });
+        });
+
+        this.inspectionErrors.forEach(error => { console.log(error); });
+
+        console.log('Loaded property urls:');
+        Object.keys(this.propertyUrls).forEach(url => {
+            console.log('   ' + url);
+        });
+    }
+
+    updateConnectionInspection(direction, ndx, url) {
+        if (typeof this.inspectionQues[ndx] == 'undefined') {
+            this.inspectionQues[ndx] = {};
+        }
+
+        if (direction == 'in') {
+            if (typeof this.inspectionQues[ndx][url] == 'undefined') {
+                this.inspectionQues[ndx][url] = 1;
             }
             else {
-                this.childPropertyUrls = await this.getDirectChildPropertyUrlsFromDom();
-                this.printDebugText('properties:' + this.propertyCount);
+                this.inspectionQues[ndx][url] += 1;
             }
         }
-        this.printDebugText('SiteDirectory.initialize done:' + this.path)
-    }
-
-    printDebugText(debugText) {
-        let text = '';
-        for (let i = 0; i < this.depth; i += 1) {
-            text = text + '    ';
+        else {
+            if (typeof this.inspectionQues[ndx][url] == 'undefined') {
+                this.inspectionErrors.push(url + ' not found in inspectionQues ' + ndx);
+            }
+            else {
+                this.inspectionQues[ndx][url] -= 1;
+                if (this.inspectionQues[ndx][url] < 1) {
+                    delete (this.inspectionQues[ndx][url]);
+                }
+            }
         }
-        text = text + debugText;
-        console.log(text);
+        //this.printInspectionInfo();
+        this.printInfo();
     }
 
-    async getDirectChildPropertyUrlsFromDom() {
-        const allPropertyUrls = {};
-        let propertyUrls = this.getPropertyUrlsFromDom(this.dom);
-        let morePropertiesAdded = false;
-        Object.keys(propertyUrls).forEach(key => {
-            if (!allPropertyUrls[key]) {
-                allPropertyUrls[key] = propertyUrls[key];
-                morePropertiesAdded = true;
+    getNextPropertyAreaUrlPage() {
+        /*
+         Since each propertyArea can have multiple pages and we scan each page in 
+         separate threads we scan separate eareas in each thread to avoid possible
+         attempting to connect to several nonexisten pages at one time since we do
+         not know how many pages in each area until we get to an empty page
+        */
+
+        Object.keys(this.propertyAreaUrlPage).forEach(url => {
+            if (this.propertyAreaUrlPage[url].allScanned) {
+                delete (this.propertyAreaUrlPage[url]);
             }
         });
-        //propertyUrls.forEach(propertyUrl => { allPropertyUrls.push(propertyUrl) });
-        let propertyPageIndex = 1;
 
-        while (morePropertiesAdded) {
-            let nextPropertyPageDom = await domUtils.getDomFromUrl(this.url + '/?page=' + propertyPageIndex);
-            propertyUrls = this.getPropertyUrlsFromDom(nextPropertyPageDom);
-            morePropertiesAdded = false;
-            Object.keys(propertyUrls).forEach(key => {
-                if (!allPropertyUrls[key]) {
-                    allPropertyUrls[key] = propertyUrls[key];
-                    morePropertiesAdded = true;
-                }
-            });
-            propertyPageIndex += 1;
+        let urlToScan = undefined;
+        let pageToScan = undefined;
+        Object.keys(this.propertyAreaUrlPage).forEach(url => {
+            if (!this.propertyAreaUrlPage[url].beingScanned) {
+                urlToScan = url;
+                this.propertyAreaUrlPage[urlToScan].panenumber += 1;
+            }
+        });
+
+        if (typeof urlToScan == 'undefined') {
+            urlToScan = this.getNextPropertyAreaUrl();
+            if (typeof urlToScan != 'undefined') {
+                this.propertyAreaUrlPage[urlToScan] = { beingScanned: false, panenumber: 0, allScanned: false };
+            }
         }
-        return allPropertyUrls;
+
+        if (typeof urlToScan != 'undefined') {
+            this.propertyAreaUrlPage[urlToScan].beingScanned = true;
+            pageToScan = this.propertyAreaUrlPage[urlToScan].panenumber;
+        }
+
+        const returnObject = { url: urlToScan, extension: '?page=' + pageToScan };
+        return returnObject;
     }
 
     getPropertyUrlsFromDom(dom) {
@@ -114,6 +180,87 @@ class SiteDirectory {
         return propertyUrls;
     }
 
+    async getPropertyUrlsFromPropertyAreaPage(urlInfo) {
+
+
+        const propertiesPageUrl = urlInfo.url + urlInfo.extension;
+
+        this.updateConnectionInspection('in', 2, propertiesPageUrl);
+
+        const dom = await domUtils.getDomFromUrl(propertiesPageUrl, this.messageLogger, this.errorLogger);
+        let addedProperties = 0;
+
+        if (dom) {
+            const propertyUrls = this.getPropertyUrlsFromDom(dom);
+            Object.keys(propertyUrls).forEach(url => {
+                let fixedUrl = url;
+                if (fixedUrl.substring(0, 4) != 'http') {
+                    fixedUrl = this.siteBaseUrl + url;
+                }
+                this.propertyUrls[fixedUrl] = fixedUrl;
+
+                //this.siteBaseUrl
+                addedProperties += 1;
+                this.scannedPropertiesCount += 1;
+            })
+        }
+
+        if (addedProperties == 0) {
+            this.propertyAreaUrlPage[urlInfo.url].allScanned = true;
+            this.propertyAreasScanned += 1;
+        }
+        else {
+            this.propertyAreaPageScanned += 1;
+        }
+
+        this.activeConnections -= 1;
+
+        this.updateConnectionInspection('out', 2, propertiesPageUrl);
+        this.scanForPropertyUrls();
+    }
+
+    scanForPropertyUrls() {
+        /*
+        We start here when all this.dirUrls have been scanned.
+        We now have all propertyAreaUrls with a count of properties for each area in
+        this.propertyAreaUrls.
+        Each of the urls in this.propertyAreaUrls might have multiple pages with properties.
+        We now have to scann all the pages and save the properties in this.propertyUrls
+        */
+        let urlFound = true;
+        while ((this.activeConnections < this.maxConnections) && (urlFound)) {
+            //while ((this.scannedPropertiesCount <= 10) && (this.activeConnections < this.maxConnections) && (urlFound)) {
+            //scan the page for propertyUrls and store them in 
+            // this.propertyUrls in a separate 'thread'
+            let nextDirUrl = this.getNextPropertyAreaUrlPage();
+            if (typeof nextDirUrl.url != 'undefined') {
+                this.activeConnections += 1;
+                this.getPropertyUrlsFromPropertyAreaPage(nextDirUrl);
+            }
+            else {
+                urlFound = false;
+            }
+        }
+        if ((this.activeConnections == 0) && (!urlFound)) {
+            //FOR DEBUGGING
+            //if (this.scannedPropertiesCount > 10) {
+            dirScanFinishedCallback();
+        }
+    }
+
+    getPropertyCountFromDom(dom) {
+        const spanSelector = 'span.otm-ResultCount span';
+        const counterTextElement = dom.window.document.querySelector(spanSelector);
+        const counter = parseInt(counterTextElement.textContent.replace(/\D/g, ''));
+        const plusPos = counterTextElement.textContent.indexOf("+")
+        let tooMany = true;
+        if (plusPos < 0) {
+            tooMany = false;
+        }
+
+        return { counter, tooMany };
+    }
+
     getChildDirUrlsFromDom(dom) {
         const childDirUrls = {};
         const anchorSelector = 'div.within li.otm-ListItemOtmBullet a';
@@ -127,27 +274,76 @@ class SiteDirectory {
         return childDirUrls;
     }
 
-    async getChildDirectoriesFromDom() {
-        const childDirs = [];
-        const childDirUrls = this.getChildDirUrlsFromDom(this.dom);
-        for (const childDirUrl of Object.keys(childDirUrls)) {
-            const childDir = new SiteDirectory(this.siteBaseUrl, childDirUrl, this.messageLogger, this.errorLogger, this.depth + 1);
-            await childDir.initialize();
-            childDir.parentDir = this;
-            childDirs.push(childDir);
+    async getChildDirs(dirUrl) {
+        this.updateConnectionInspection('in', 1, dirUrl);
+        const dom = await domUtils.getDomFromUrl(dirUrl, this.messageLogger, this.errorLogger);
+        const { counter, tooMany } = this.getPropertyCountFromDom(dom);
+        if (tooMany) {
+            //if too many properties listed for this area (typically says +1000)
+            //we find all the subareasand store them for scanning in the dirUrls array
+            const childDirUrls = this.getChildDirUrlsFromDom(dom);
+            Object.keys(childDirUrls).forEach(url => { this.dirUrls[this.siteBaseUrl + url] = this.siteBaseUrl + url })
         }
-        return childDirs;
+        else {
+            this.propertyAreaUrls[dirUrl] = counter;
+            this.propertyAreaCount += 1;
+        }
+        this.scannedDirCount += 1;
+        this.activeConnections -= 1;
+        this.updateConnectionInspection('out', 1, dirUrl);
+        this.scanForSubDirUrls();
     }
 
-    getAllChildPropertyUrls() {
-        let allChildPropertyUrls = [];
-        Object.keys(this.childPropertyUrls).forEach(key => {
-            allChildPropertyUrls.push(this.childPropertyUrls[key]);
-        })
-        this.childDirectories.forEach(childDirectory => {
-            allChildPropertyUrls = allChildPropertyUrls.concat(childDirectory.getAllChildPropertyUrls());
-        })
-        return allChildPropertyUrls;
+    printInfo() {
+        console.clear();
+        let dirsInCue = 0;
+        Object.keys(this.dirUrls).forEach(dirUrl => {
+            dirsInCue += 1;
+        });
+        let propertyDirsInCue = 0;
+        Object.keys(this.propertyAreaUrls).forEach(dirUrl => {
+            propertyDirsInCue += 1;
+        });
+        let propertyUrlCount = 0;
+        Object.keys(this.propertyUrls).forEach(dirUrl => {
+            propertyUrlCount += 1;
+        });
+
+        console.log('Total dirs scanned: ' + this.scannedDirCount);
+        console.log('Dirs in cue: ' + dirsInCue)
+        console.log('Dirs scanned for properties: ' + this.propertyAreasScanned)
+        console.log('Total pages scanned for properties: ' + this.propertyAreaPageScanned)
+        console.log('Dirs with propertiesin cue: ' + propertyDirsInCue)
+        console.log('Property urls found:' + propertyUrlCount)
+    }
+
+    scanForSubDirUrls() {
+        let urlFound = true;
+        while ((this.activeConnections < this.maxConnections) && urlFound) {
+            //FOR DEBUGGING
+            //while ((this.propertyAreaCount <= 5) && (this.activeConnections < this.maxConnections) && urlFound) {
+            let nextDirUrl = this.getNextDirUrl();
+            if (typeof nextDirUrl != 'undefined') {
+                this.activeConnections += 1;
+                this.getChildDirs(nextDirUrl);
+            }
+            else {
+                urlFound = false;
+            }
+        }
+        if ((this.activeConnections == 0) && (!urlFound)) {
+            //FOR DEBUGGING
+            //if (this.propertyAreaCount > 5) {
+            this.scanForPropertyUrls();
+        }
+    }
+
+    getPropertyUrls() {
+        const returnArray = [];
+        Object.keys(this.propertyUrls).forEach(url => {
+            returnArray.push(url);
+        });
+        return returnArray;
     }
 }
 
@@ -155,7 +351,7 @@ class SiteScraperClass extends ScraperBaseClass {
     siteBaseUrl = 'https://www.onthemarket.com/';
     siteName = 'www.onthemarket.com';
     initialPage = 'for-sale/property/uk/';
-    siteDirectory = undefined;
+    siteParser = undefined;
 
     otmContext = undefined;
 
@@ -166,10 +362,11 @@ class SiteScraperClass extends ScraperBaseClass {
     }
 
     async initialize() {
-        console.log('SiteScraperClass.initialize:' + this.initialPage)
-        this.siteDirectory = new SiteDirectory(this.siteBaseUrl, this.initialPage, this.messageLogger, this.errorLogger, 0);
-        await this.siteDirectory.initialize();
-        console.log('SiteScraperClass.initialize done:' + this.initialPage)
+        this.dirParser = new dirParser(this.siteBaseUrl, this.initialPage, this.messageLogger, this.errorLogger, 0);
+        this.dirParser.scanForSubDirUrls();
+        //testPromise();
+        await awaitCompletion();
+        console.log('done');
     }
 
     initializeOtmObject(propertyDom) {
@@ -198,7 +395,7 @@ class SiteScraperClass extends ScraperBaseClass {
 
     getPropertyUrls() {
         //The actual return:
-        return this.siteDirectory.getAllChildPropertyUrls();
+        return this.dirParser.getPropertyUrls();
 
         //FOR DEBUGGING
         /*
@@ -387,7 +584,7 @@ class SiteScraperClass extends ScraperBaseClass {
     }
 
     getAgentFromDom(propertyDom) {
-        const agentInfo = { name: '', logo_url: '', website: '', email:'', phone: '' };
+        const agentInfo = { name: '', logo_url: '', website: '', email: '', phone: '' };
         if (this.otmContex.__OTM__.jsonData && this.otmContex.__OTM__.jsonData['agent']) {
             if (this.otmContex.__OTM__.jsonData['agent']['company_name']) {
                 agentInfo.name = this.otmContex.__OTM__.jsonData['agent']['company_name'];

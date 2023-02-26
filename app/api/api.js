@@ -872,7 +872,7 @@ const getBotPosts = async (params) => {
     return botPosts;
 }
 
-const postBotProperties = async (properties, invalidUrls, errors, scrapeStart, scrapeEnd) => {
+const postBotProperties = async (properties, scrapeStart, scrapeEnd) => {
     // invalidUrls are included as well and is saved in the database so that they are counted as 
     // allready posted when we call getBotPostedUrls. (See getBotPostedUrls)
     const config = {
@@ -880,7 +880,7 @@ const postBotProperties = async (properties, invalidUrls, errors, scrapeStart, s
         baseURL: baseUrl,
         url: '/api/bot_post',
         data: {
-            properties, invalidUrls, errors, scrapeStart, scrapeEnd
+            properties, scrapeStart, scrapeEnd
         }
     }
     const response = await getAxiosResponse(config);

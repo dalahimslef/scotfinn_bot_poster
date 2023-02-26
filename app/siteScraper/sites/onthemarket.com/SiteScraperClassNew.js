@@ -1,0 +1,6 @@
+class dirParser {
+
+    getPropertyUrls(urlCount){
+
+    }
+}
