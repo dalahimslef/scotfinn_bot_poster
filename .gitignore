@@ -23,3 +23,4 @@ pnpm-debug.log*
 *.sw?
 app/config/config.js
 app/config/bot_config.js
+generated_test_files

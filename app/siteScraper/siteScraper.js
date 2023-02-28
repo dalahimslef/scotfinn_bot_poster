@@ -1,7 +1,7 @@
 const fs = require('fs')
 const api = require('../api/api.js');
 const objectSaver = require('../utils/objectSaver.js');
-const AsyncExec = require('../utils/asyncExec.js');
+//const AsyncExec = require('../utils/asyncExec.js');
 
 
 
@@ -133,10 +133,10 @@ function testPromise(syncExecutor) {
 scrapeSite = async (elementPath, messageLogger, errorLogger) => {
     try {
 
-        const ae = new AsyncExec();
+        //const ae = new AsyncExec();
         //ae.dirScanFinishedCallback();
-        testPromise(ae);
-        await ae.awaitCompletion();
+        //testPromise(ae);
+        //await ae.awaitCompletion();
         const SiteScraper = require(elementPath + '/SiteScraperClass.js');
         const scraper = new SiteScraper(messageLogger, errorLogger);
         console.log('scraper.initialize')
@@ -161,12 +161,15 @@ scrapeSite = async (elementPath, messageLogger, errorLogger) => {
             }
         }
         while (propertyUrls.length > 0) {
-
-            const { propertyInfo, invalidUrls } = await scraper.getPropertyInfo(propertyUrls);
+            console.clear();
+            console.log('BatchSize ' + batchSize);
+            console.log('Starting loop ' + loopCounter);
+            //const { propertyInfo, invalidUrls } = await scraper.getPropertyInfo(propertyUrls);
+            const { propertyInfo, invalidUrls } = await scraper.getPropertyInfoInParalell(propertyUrls);
             //for debugging
             //const { propertyInfo, invalidUrls, propertiyUrlsToDelete } = await scraper._debug_getPropertyInfo();
             const scrapeEnd = Date.now();
-            let filename = "C:\\Users\\dalah\\Programming\\node-programs\\scotfinn\\bot_poster\\app\\utils\\propertyInfo_" + loopCounter + ".js"
+            let filename = "C:\\Users\\dalah\\Programming\\node-programs\\scotfinn\\bot_poster\\generated_test_files\\propertyInfo_" + loopCounter + ".js"
             objectSaver.saveObjectToFile(propertyInfo, filename);
             //disable FOR DEBUGGING
 
@@ -183,6 +186,7 @@ scrapeSite = async (elementPath, messageLogger, errorLogger) => {
                 }
             }
 
+            console.log('Completed loop ' + loopCounter);
             loopCounter += 1;
         }
 

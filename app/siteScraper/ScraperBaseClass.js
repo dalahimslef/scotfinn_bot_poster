@@ -5,6 +5,7 @@ const api = require('../api/api.js');
 const { JSDOM } = jsdom;
 const domUtils = require('../utils/domUtils.js');
 //const objectSaver = require('../utils/objectSaver.js');
+const AsyncExec = require('../utils/asyncExec.js');
 
 class ScraperBaseClass {
   siteName = '';
@@ -160,20 +161,28 @@ class ScraperBaseClass {
         property_url: propertyUrl,
         site_name: this.siteName,
       }
-      console.log(returnObject);
+      //console.log(returnObject);
       propertyInfo.push(returnObject);
     }
     else {
       invalidUrls.push(propertyUrl);
     }
 
+    console.log('Got '+propertyUrl);
     this.pInfoLoops -= 1;
     if (this.pInfoLoops < 0) {
       this.pInfoLoops = 0;
     }
     if (typeof asyncExecutor != 'undefined') {
       if (this.pInfoLoops < 1) {
-        asyncExecutor.dirScanFinishedCallback.bind(asyncExecutor);
+        //asyncExecutor.dirScanFinishedCallback.bind(asyncExecutor);
+        //asyncExecutor.dirScanFinishedCallback().bind(asyncExecutor);
+        //works without using .bind(). If calling from a setTimeout() for example, this will refer
+        //to the setTimeout-function I think, so we need to use bind.
+        //However, in this case, using bind() will crash since it seems dirScanFinishedCallback
+        //first gets called and when its completed it is undefined, and bind then gets called on an
+        //undefined object
+        asyncExecutor.dirScanFinishedCallback();
       }
     }
   }
@@ -221,6 +230,7 @@ class ScraperBaseClass {
 
     this.pInfoLoops = propertyUrls.length;
     for (let propertyUrl of propertyUrls) {
+      console.log('Getting '+propertyUrl);
       this.getPropertyInfoFromUrl(propertyUrl, propertyInfo, invalidUrls, ae);
     }
 
