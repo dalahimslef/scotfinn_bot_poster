@@ -1,7 +1,6 @@
 const ScraperBaseClass = require('../../ScraperBaseClass.js');
 //import {getDomFromUrl} from '../../../utils/domUtils.js'
 const domUtils = require('../../../utils/domUtils.js');
-//const vm = require('vm');
 
 let scanCompeted = false;
 let completedResolve = function () { };
@@ -382,7 +381,7 @@ class SiteScraperClass extends ScraperBaseClass {
                     //Figured out by trail and error...
                     const newContext = { window: {}, __OTM__: { currentQuery: {} } };
                     console.log('vm.createContext')
-                    const vm = require('vm');
+                    const vm = require('node:vm');
                     vm.createContext(newContext); // Contextify the object.
                     console.log('vm.runInContext')
                     vm.runInContext(code, newContext);
