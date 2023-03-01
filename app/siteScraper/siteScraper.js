@@ -152,6 +152,7 @@ scrapeSite = async (elementPath, messageLogger, errorLogger) => {
         const { propertiesToLoad, propertiyUrlsToDelete } = getPropertiesToLoadAndDelete(allPropertyUrls, existingPropertyUrls);
 
         let loopCounter = 0;
+        let loopCounter2 = 0;
         const batchSize = 10;
         let propertyUrls = [];
         for (let i = 0; i < batchSize; i += 1) {
@@ -188,9 +189,35 @@ scrapeSite = async (elementPath, messageLogger, errorLogger) => {
 
             console.log('Completed loop ' + loopCounter);
             loopCounter += 1;
+            loopCounter2 += 1;
+            if(loopCounter2 == 10){
+                //If we are loading alot of properties (for example the first time we load properties from a site)
+                //we take a little break after each 10th loop to give the server a little 'pause'
+                //Maybe not very nessesary, but maybe...just to be nice :)
+                loopCounter2 = 0;
+                console.log('Waiting 10 seconds... ' + loopCounter);
+                await new Promise(resolve => setTimeout(resolve, 10000));
+            }
         }
 
-        await api.deleteProperties(propertiyUrlsToDelete, scraper.siteName);
+        propertyUrls = [];
+        const batchSize2 = 100;
+        for (let i = 0; i < batchSize2; i += 1) {
+            const nextUrl = propertiyUrlsToDelete.pop();
+            if (nextUrl) {
+                propertyUrls.push(nextUrl);
+            }
+        }
+        while (propertyUrls.length > 0) {
+            await api.deleteProperties(propertyUrls, scraper.siteName);
+            propertyUrls = [];
+            for (let i = 0; i < batchSize2; i += 1) {
+                const nextUrl = propertiyUrlsToDelete.pop();
+                if (nextUrl) {
+                    propertyUrls.push(nextUrl);
+                }
+            }
+        } 
 
         const allMessages = [];
         let messages = messageLogger.getMessages();
